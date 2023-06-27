@@ -1,0 +1,100 @@
+@font-face {
+  font-family: AmericanTypewriter;
+  src: url(./assets/fonts/AmericanTypewriter.ttc);
+}
+
+// ? ? ?
+// ? GLOBALS
+// ? ? ?
+
+$color-1: #ecf3e5;
+$color-2: #bdf288;
+$smooth-border: 10px;
+$subtle-border: 5px;
+
+*,
+*:before,
+*:after {
+  font-family: AmericanTypewriter;
+  letter-spacing: 0.025em;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+// ? ? ?
+// ? MAIN VIEW
+// ? ? ?
+
+#invoice-main-view {
+  margin: 2rem auto;
+  padding: 0 1rem 2rem;
+  min-height: 80vh;
+  width: min(80vw, 1000px);
+  border: black 2px solid;
+  border-radius: $subtle-border;
+}
+
+// ? ? ?
+// ? DYNAMICALLY GENERATED RECIPIENTS
+// ? ? ?
+
+#all-recipients {
+  max-height: 800px;
+  overflow-y: scroll;
+  margin-bottom: 2rem;
+}
+
+.reactive-recipient-children {
+  background-color: $color-1;
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: $smooth-border;
+
+  input {
+    background-color: lighten($color-1, 10%);
+  }
+
+  input.form-control-plaintext {
+    background-color: transparent;
+  }
+
+  .recipient-default-value {
+    display: flex;
+    align-items: center;
+  }
+}
+
+#all-invoiced-amount-rows {
+  max-height: 300px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+}
+
+// ? ? ?
+// ? CONSTRUCTIVE CLASSES
+// ? ? ?
+
+.divider {
+  height: 1px;
+  border-radius: 5px;
+  width: 90%;
+  background-color: rgb(214, 214, 214);
+  margin: 2rem auto;
+
+  &.white {
+    background-color: white;
+  }
+}
+
+// ? ? ?
+// ? UTIL CLASSES
+// ? ? ?
+
+.center-children {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ? import bootstrap stylesheet
+@import "bootstrap/scss/bootstrap";
