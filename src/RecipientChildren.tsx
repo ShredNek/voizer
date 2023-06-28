@@ -1,26 +1,72 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Form, Row, Col, FloatingLabel, Button } from "react-bootstrap";
 import InvoicedItemsServices from "./InvoicedItemsServices";
-
-// interface RecipientChildrenInterface {
-//   key: number;
-// }
+import {
+  childAmountAndKey,
+  keyIsInTotalAmounts,
+  getByKeyAndCallbackSetState,
+  removeByKeyAndCallbackSetState,
+  incrementId,
+} from "./utils";
 
 export default function RecipientChildren() {
-  const [totalItemsServiceRowKeys, setTotalItemsServiceRowKeys] = useState([1]);
   const [totalInvoiceAmount, setTotalInvoiceAmount] = useState(0);
-
-  function incrementId(priorIds: number[]) {
-    return Math.max(...priorIds) + 1;
-  }
+  const [totalItemsServiceRowKeys, setTotalItemsServiceRowKeys] = useState<
+    number[]
+  >([]);
+  const [itemServiceAmountsAndKeys, setItemServiceAmountsAndKeys] = useState<
+    childAmountAndKey[]
+  >([]);
 
   function handleAddRow() {
-    const numbToAdd = incrementId(totalItemsServiceRowKeys);
-    setTotalItemsServiceRowKeys([...totalItemsServiceRowKeys, numbToAdd]);
+    if (totalItemsServiceRowKeys.length !== 0) {
+      const numbToAdd = incrementId(totalItemsServiceRowKeys);
+      setTotalItemsServiceRowKeys([...totalItemsServiceRowKeys, numbToAdd]);
+      return;
+    }
+    setTotalItemsServiceRowKeys([2]);
   }
 
-  function recalculateTotalAmount(amount: number) {
-    console.log(amount);
+  function refreshServiceAmountUsingChildKey(amount: number, key: number) {
+    if (!keyIsInTotalAmounts(key, itemServiceAmountsAndKeys)) {
+      const newAmountAndKey: childAmountAndKey = { amount, key };
+      setItemServiceAmountsAndKeys([
+        ...itemServiceAmountsAndKeys,
+        newAmountAndKey,
+      ]);
+      return;
+    }
+
+    getByKeyAndCallbackSetState(
+      key,
+      amount,
+      itemServiceAmountsAndKeys,
+      setItemServiceAmountsAndKeys
+    );
+  }
+
+  // ? This is what sets the total for the invoice
+  // ? it watches for changes in the InvoicedItemsServices children
+  useEffect(() => {
+    let newInvoiceTotal = 0;
+
+    itemServiceAmountsAndKeys.forEach((e) => {
+      newInvoiceTotal = newInvoiceTotal + e.amount;
+    });
+
+    setTotalInvoiceAmount(newInvoiceTotal);
+  }, [itemServiceAmountsAndKeys, totalItemsServiceRowKeys]);
+
+  function removeItemServiceChildRow(key: number) {
+    const allChildren = [...totalItemsServiceRowKeys];
+    let newChildren: number[] = [];
+    allChildren.forEach((n) => (n !== key ? newChildren.push(n) : null));
+    setTotalItemsServiceRowKeys(newChildren);
+    removeByKeyAndCallbackSetState(
+      key,
+      itemServiceAmountsAndKeys,
+      setItemServiceAmountsAndKeys
+    );
   }
 
   return (
@@ -61,16 +107,26 @@ export default function RecipientChildren() {
         <div className="divider white" />
         <h4 className="m-1">Invoiced items/services</h4>
         <div id="all-invoiced-amount-rows">
-          {totalItemsServiceRowKeys.map((key) => {
-            return (
-              <InvoicedItemsServices
-                key={key}
-                bubbleUpTotalAmount={(amount: number) =>
-                  recalculateTotalAmount(amount)
-                }
-              />
-            );
-          })}
+          <InvoicedItemsServices
+            key={1}
+            bubbleUpTotalAmount={(amount: number) =>
+              refreshServiceAmountUsingChildKey(amount, 1)
+            }
+            firstChild={true}
+          />
+          {totalItemsServiceRowKeys
+            ? totalItemsServiceRowKeys.map((key) => {
+                return (
+                  <InvoicedItemsServices
+                    key={key}
+                    bubbleUpTotalAmount={(amount: number) =>
+                      refreshServiceAmountUsingChildKey(amount, key)
+                    }
+                    deleteThisChild={() => removeItemServiceChildRow(key)}
+                  />
+                );
+              })
+            : null}
         </div>
         <div className="total-amount">
           <Row className="g-2 my-1 mb-3">
@@ -82,7 +138,7 @@ export default function RecipientChildren() {
             </Col>
             <Col md={{ span: 2 }} className="recipient-default-value">
               <Form.Control
-                defaultValue={"$" + totalInvoiceAmount}
+                value={`$${totalInvoiceAmount.toFixed(2)}`}
                 plaintext
                 readOnly
               />

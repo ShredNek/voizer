@@ -12,12 +12,16 @@ import { handleIfQuantityOrRateIsNull } from "./utils";
 
 interface InvoicedItemsServicesInterface {
   bubbleUpTotalAmount: (amount: number) => void;
+  deleteThisChild?: () => void;
+  firstChild?: boolean;
 }
 
 export default function InvoicedItemsServices({
   bubbleUpTotalAmount,
+  deleteThisChild,
+  firstChild,
 }: InvoicedItemsServicesInterface) {
-  const [quantity, setQuantity] = useState<string>("");
+  const [quantity, setQuantity] = useState<string>("1");
   const [rate, setRate] = useState<string>("");
   const [total, setTotal] = useState(0);
 
@@ -32,6 +36,7 @@ export default function InvoicedItemsServices({
   useEffect(() => {
     let newTotal = handleIfQuantityOrRateIsNull(Number(quantity), Number(rate));
     setTotal(newTotal);
+    bubbleUpTotalAmount(newTotal);
   }, [quantity, rate]);
 
   return (
@@ -39,9 +44,15 @@ export default function InvoicedItemsServices({
       <Row className="g-2 my-1">
         <Col md={{ span: 6 }}>
           <InputGroup>
-            <Button variant="danger" id="button-addon1">
-              <FaXmark />
-            </Button>
+            {firstChild ? null : (
+              <Button
+                variant="danger"
+                id="button-addon1"
+                onClick={deleteThisChild}
+              >
+                <FaXmark />
+              </Button>
+            )}
             <FloatingLabel label="Item/service">
               <Form.Control type="name" placeholder="John Smith" />
             </FloatingLabel>
@@ -72,7 +83,7 @@ export default function InvoicedItemsServices({
           </FloatingLabel>
         </Col>
         <Col md={{ span: 2 }} className="recipient-default-value">
-          <Form.Control value={`$${total}`} plaintext readOnly />
+          <Form.Control value={`$${total.toFixed(2)}`} plaintext readOnly />
         </Col>
       </Row>
     </div>
