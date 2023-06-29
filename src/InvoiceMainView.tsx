@@ -1,8 +1,75 @@
 import { Form, Container, Button } from "react-bootstrap";
-import RecipientChildren from "./RecipientChildren";
+import {
+  keyIsInTotalAmounts,
+  InvoiceItemsAndKey,
+  InvoiceItem,
+  getInvoiceItemByKeyAndCallbackSetState,
+  deleteKeyAndCallbackSetState,
+  removeByKeyAndCallbackSetState,
+  incrementId,
+  convertToInvoiceNumberAsString,
+} from "./utils";
+import { useState, useEffect } from "react";
+import RecipientChild from "./RecipientChild";
 import InvoiceSenderDetails from "./InvoiceSenderDetails";
 
 export default function InvoiceMainView() {
+  const [allRecipientChildKeys, setAllRecipientChildKeys] = useState<number[]>(
+    []
+  );
+  const [invoiceItemsAndKeys, setItemServiceAmountsAndKeys] = useState<
+    InvoiceItemsAndKey[]
+  >([]);
+  const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("0098");
+
+  function handleAddRecipientChild() {
+    if (allRecipientChildKeys.length !== 0) {
+      const numbToAdd = incrementId(allRecipientChildKeys);
+      setAllRecipientChildKeys([...allRecipientChildKeys, numbToAdd]);
+      return;
+    }
+    setAllRecipientChildKeys([0]);
+  }
+
+  // ? this function must be used as the onChange callback,
+  // ? to set the amount of key's respective amount in the
+  // ? state item in the itemServiceAmountsAndKeys array
+  function refreshServiceAmountUsingChildKey(
+    invoiceItems: InvoiceItem[],
+    key: number
+  ) {
+    if (!keyIsInTotalAmounts(key, invoiceItemsAndKeys)) {
+      const newInvoiceItemAndKey = { invoiceItems, key };
+      setItemServiceAmountsAndKeys([
+        ...invoiceItemsAndKeys,
+        newInvoiceItemAndKey,
+      ]);
+      return;
+    }
+
+    getInvoiceItemByKeyAndCallbackSetState(
+      key,
+      invoiceItems,
+      invoiceItemsAndKeys,
+      setItemServiceAmountsAndKeys
+    );
+  }
+
+  // ? handles the deletion of a RecipientChild row
+  function handleRecipientChildDeletion(key: number) {
+    deleteKeyAndCallbackSetState(
+      key,
+      allRecipientChildKeys,
+      setAllRecipientChildKeys
+    );
+
+    removeByKeyAndCallbackSetState(
+      key,
+      invoiceItemsAndKeys,
+      setItemServiceAmountsAndKeys
+    );
+  }
+
   return (
     <section id="invoice-main-view">
       <h2 className="my-4 text-center">Let's send some invoices!</h2>
@@ -16,10 +83,30 @@ export default function InvoiceMainView() {
             Please enter the details of each recipient below...
           </h4>
           <div id="all-recipients">
-            <RecipientChildren key={1} />
+            <RecipientChild
+              key={1}
+              invoiceNumberAsString={initialInvoiceNumber}
+              firstChild={true}
+            />
+            {allRecipientChildKeys
+              ? allRecipientChildKeys.map((key) => {
+                  return (
+                    <RecipientChild
+                      key={key}
+                      invoiceNumberAsString={convertToInvoiceNumberAsString(
+                        initialInvoiceNumber,
+                        key
+                      )}
+                      deleteThisChild={() => handleRecipientChildDeletion(key)}
+                    />
+                  );
+                })
+              : null}
           </div>
         </Form>
-        <Button variant="success">+ Add recipient</Button>
+        <Button variant="success" onClick={handleAddRecipientChild}>
+          + Add recipient
+        </Button>
       </Container>
       <Container className="center-children my-5">
         <Button variant="outline-primary" size={"lg"} className="mx-5">
@@ -32,6 +119,14 @@ export default function InvoiceMainView() {
     </section>
   );
 }
+
+/*
+
+wat feature do i wnat for this? treat the invoice number as keys??
+
+
+
+*/
 
 /* 
       

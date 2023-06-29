@@ -1,73 +1,83 @@
 import { useEffect, useState } from "react";
 import { Form, Row, Col, FloatingLabel, Button } from "react-bootstrap";
-import InvoicedItemsServices from "./InvoicedItemsServices";
+import InvoicedItem from "./InvoicedItem";
 import {
-  childAmountAndKey,
+  AmountAndKey,
   keyIsInTotalAmounts,
-  getByKeyAndCallbackSetState,
+  getAmountByKeyAndCallbackSetState,
   removeByKeyAndCallbackSetState,
   incrementId,
+  deleteKeyAndCallbackSetState,
 } from "./utils";
 
-export default function RecipientChildren() {
+interface RecipientChild {
+  invoiceNumberAsString: string;
+  firstChild?: boolean;
+  deleteThisChild?: () => void;
+}
+
+export default function RecipientChild({
+  invoiceNumberAsString,
+  firstChild,
+  deleteThisChild,
+}: RecipientChild) {
   const [totalInvoiceAmount, setTotalInvoiceAmount] = useState(0);
-  const [totalItemsServiceRowKeys, setTotalItemsServiceRowKeys] = useState<
-    number[]
-  >([]);
-  const [itemServiceAmountsAndKeys, setItemServiceAmountsAndKeys] = useState<
-    childAmountAndKey[]
-  >([]);
+  const [allItemsRowKeys, setAllItemsRowKeys] = useState<number[]>([]);
+  const [itemAmountsAndKeys, setItemAmountsAndKeys] = useState<AmountAndKey[]>(
+    []
+  );
 
   function handleAddRow() {
-    if (totalItemsServiceRowKeys.length !== 0) {
-      const numbToAdd = incrementId(totalItemsServiceRowKeys);
-      setTotalItemsServiceRowKeys([...totalItemsServiceRowKeys, numbToAdd]);
+    if (allItemsRowKeys.length !== 0) {
+      const numbToAdd = incrementId(allItemsRowKeys);
+      setAllItemsRowKeys([...allItemsRowKeys, numbToAdd]);
       return;
     }
-    setTotalItemsServiceRowKeys([2]);
+    // ? set to the umber 2 cause... idfk
+    // ? it is only a means of makring a place in an array so it's fine for now.
+    // ? the methods on this component only increment, not fill in the gaps
+    setAllItemsRowKeys([2]);
   }
 
+  // ? this function must be used as the onChange callback,
+  // ? to set the amount of key's respective amount in the
+  // ? state item in the itemAmountsAndKeys array
   function refreshServiceAmountUsingChildKey(amount: number, key: number) {
-    if (!keyIsInTotalAmounts(key, itemServiceAmountsAndKeys)) {
-      const newAmountAndKey: childAmountAndKey = { amount, key };
-      setItemServiceAmountsAndKeys([
-        ...itemServiceAmountsAndKeys,
-        newAmountAndKey,
-      ]);
+    if (!keyIsInTotalAmounts(key, itemAmountsAndKeys)) {
+      const newAmountAndKey: AmountAndKey = { amount, key };
+      setItemAmountsAndKeys([...itemAmountsAndKeys, newAmountAndKey]);
       return;
     }
 
-    getByKeyAndCallbackSetState(
+    getAmountByKeyAndCallbackSetState(
       key,
       amount,
-      itemServiceAmountsAndKeys,
-      setItemServiceAmountsAndKeys
+      itemAmountsAndKeys,
+      setItemAmountsAndKeys
+    );
+  }
+
+  // ? handles the deletion of a InvoicedItems row
+  function removeItemChildRow(key: number) {
+    deleteKeyAndCallbackSetState(key, allItemsRowKeys, setAllItemsRowKeys);
+    removeByKeyAndCallbackSetState(
+      key,
+      itemAmountsAndKeys,
+      setItemAmountsAndKeys
     );
   }
 
   // ? This is what sets the total for the invoice
-  // ? it watches for changes in the InvoicedItemsServices children
+  // ? it watches for changes in the InvoicedItem children
   useEffect(() => {
     let newInvoiceTotal = 0;
 
-    itemServiceAmountsAndKeys.forEach((e) => {
+    itemAmountsAndKeys.forEach((e) => {
       newInvoiceTotal = newInvoiceTotal + e.amount;
     });
 
     setTotalInvoiceAmount(newInvoiceTotal);
-  }, [itemServiceAmountsAndKeys, totalItemsServiceRowKeys]);
-
-  function removeItemServiceChildRow(key: number) {
-    const allChildren = [...totalItemsServiceRowKeys];
-    let newChildren: number[] = [];
-    allChildren.forEach((n) => (n !== key ? newChildren.push(n) : null));
-    setTotalItemsServiceRowKeys(newChildren);
-    removeByKeyAndCallbackSetState(
-      key,
-      itemServiceAmountsAndKeys,
-      setItemServiceAmountsAndKeys
-    );
-  }
+  }, [itemAmountsAndKeys, allItemsRowKeys]);
 
   return (
     <div className="reactive-recipient-children">
@@ -76,7 +86,7 @@ export default function RecipientChildren() {
           <h4 className="mx-1">Recipient details</h4>
         </Col>
         <Col>
-          <p>INV#0001</p>
+          <p>INV#{invoiceNumberAsString}</p>
         </Col>
       </Row>
       <Form.Group>
@@ -105,24 +115,24 @@ export default function RecipientChildren() {
           </Col>
         </Row>
         <div className="divider white" />
-        <h4 className="m-1">Invoiced items/services</h4>
+        <h4 className="m-1">Invoiced items</h4>
         <div id="all-invoiced-amount-rows">
-          <InvoicedItemsServices
+          <InvoicedItem
             key={1}
             bubbleUpTotalAmount={(amount: number) =>
               refreshServiceAmountUsingChildKey(amount, 1)
             }
             firstChild={true}
           />
-          {totalItemsServiceRowKeys
-            ? totalItemsServiceRowKeys.map((key) => {
+          {allItemsRowKeys
+            ? allItemsRowKeys.map((key) => {
                 return (
-                  <InvoicedItemsServices
+                  <InvoicedItem
                     key={key}
                     bubbleUpTotalAmount={(amount: number) =>
                       refreshServiceAmountUsingChildKey(amount, key)
                     }
-                    deleteThisChild={() => removeItemServiceChildRow(key)}
+                    deleteThisChild={() => removeItemChildRow(key)}
                   />
                 );
               })
@@ -145,9 +155,20 @@ export default function RecipientChildren() {
             </Col>
           </Row>
         </div>
-        <Button variant="outline-success" onClick={handleAddRow}>
-          + Add another item/service
-        </Button>
+        <Row>
+          <Col>
+            <Button variant="outline-success" onClick={handleAddRow}>
+              + Add another item
+            </Button>
+          </Col>
+          <Col>
+            {firstChild ? null : (
+              <Button variant="danger" onClick={deleteThisChild}>
+                remove this recipient
+              </Button>
+            )}
+          </Col>
+        </Row>
       </Form.Group>
     </div>
   );

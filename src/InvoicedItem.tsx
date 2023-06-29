@@ -10,17 +10,17 @@ import { FaXmark } from "react-icons/fa6";
 import React, { useState, useEffect } from "react";
 import { handleIfQuantityOrRateIsNull } from "./utils";
 
-interface InvoicedItemsServicesInterface {
+interface InvoicedItemsInterface {
   bubbleUpTotalAmount: (amount: number) => void;
   deleteThisChild?: () => void;
   firstChild?: boolean;
 }
 
-export default function InvoicedItemsServices({
+export default function InvoicedItem({
   bubbleUpTotalAmount,
   deleteThisChild,
   firstChild,
-}: InvoicedItemsServicesInterface) {
+}: InvoicedItemsInterface) {
   const [quantity, setQuantity] = useState<string>("1");
   const [rate, setRate] = useState<string>("");
   const [total, setTotal] = useState(0);
@@ -40,7 +40,7 @@ export default function InvoicedItemsServices({
   }, [quantity, rate]);
 
   return (
-    <div className="invoiced-items-services-rows">
+    <div className="invoiced-items-rows">
       <Row className="g-2 my-1">
         <Col md={{ span: 6 }}>
           <InputGroup>
@@ -53,7 +53,7 @@ export default function InvoicedItemsServices({
                 <FaXmark />
               </Button>
             )}
-            <FloatingLabel label="Item/service">
+            <FloatingLabel label="Item">
               <Form.Control type="name" placeholder="John Smith" />
             </FloatingLabel>
           </InputGroup>
