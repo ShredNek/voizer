@@ -11,13 +11,20 @@
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
+    "axios": "^1.4.0",
     "bootstrap": "^5.3.0",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.5.29",
+    "pdfkit": "^0.13.0",
     "react": "^18.2.0",
     "react-bootstrap": "^2.8.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.10.1"
   },
   "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/http-proxy-middleware": "^1.0.0",
+    "@types/pdfkit": "^0.12.10",
     "@types/react": "^18.0.37",
     "@types/react-dom": "^18.0.11",
     "@typescript-eslint/eslint-plugin": "^5.59.0",

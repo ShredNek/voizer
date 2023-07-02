@@ -12,6 +12,7 @@ import {
 import { useState, useEffect } from "react";
 import RecipientChild from "./RecipientChild";
 import InvoiceSenderDetails from "./InvoiceSenderDetails";
+import { createAllInvoices } from "./robust-test";
 
 export default function InvoiceMainView() {
   const [allRecipientChildKeys, setAllRecipientChildKeys] = useState<number[]>(
@@ -70,6 +71,8 @@ export default function InvoiceMainView() {
     );
   }
 
+  useEffect(() => createAllInvoices(), []);
+
   return (
     <section id="invoice-main-view">
       <h2 className="my-4 text-center">Let's send some invoices!</h2>
@@ -119,14 +122,6 @@ export default function InvoiceMainView() {
     </section>
   );
 }
-
-/*
-
-wat feature do i wnat for this? treat the invoice number as keys??
-
-
-
-*/
 
 /* 
       
