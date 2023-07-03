@@ -141,4 +141,13 @@ export function convertToInvoiceNumberAsString(
   return ans;
 }
 
+export function checkIfStringIsOnlyWhitespace(string: string) {
+  const whitespaceRegex = new RegExp("^s*$");
+  return whitespaceRegex.test(string);
+}
+
+export function getTodaysDate() {
+  return new Date().toISOString().split("T")[0];
+}
+
 export default {};

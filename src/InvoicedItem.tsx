@@ -12,6 +12,7 @@ import { handleIfQuantityOrRateIsNull } from "./utils";
 
 interface InvoicedItemsInterface {
   bubbleUpTotalAmount: (amount: number) => void;
+  id: string;
   deleteThisChild?: () => void;
   firstChild?: boolean;
 }
@@ -20,6 +21,7 @@ export default function InvoicedItem({
   bubbleUpTotalAmount,
   deleteThisChild,
   firstChild,
+  id,
 }: InvoicedItemsInterface) {
   const [quantity, setQuantity] = useState<string>("1");
   const [rate, setRate] = useState<string>("");
@@ -40,7 +42,7 @@ export default function InvoicedItem({
   }, [quantity, rate]);
 
   return (
-    <div className="invoiced-items-rows">
+    <div className="invoiced-items-rows" id={id}>
       <Row className="g-2 my-1">
         <Col md={{ span: 6 }}>
           <InputGroup>
@@ -54,7 +56,8 @@ export default function InvoicedItem({
               </Button>
             )}
             <FloatingLabel label="Item">
-              <Form.Control type="name" placeholder="John Smith" />
+              <Form.Control type="name" placeholder="First item"
+              id="item-name" />
             </FloatingLabel>
           </InputGroup>
         </Col>
@@ -67,6 +70,7 @@ export default function InvoicedItem({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleOnQuantityChange(e)
               }
+              id="quantity"
             />
           </FloatingLabel>
         </Col>
@@ -79,6 +83,7 @@ export default function InvoicedItem({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 handleOnRateChange(e)
               }
+              id="rate"
             />
           </FloatingLabel>
         </Col>

@@ -8,6 +8,7 @@ import {
   removeByKeyAndCallbackSetState,
   incrementId,
   deleteKeyAndCallbackSetState,
+  getTodaysDate,
 } from "./utils";
 
 interface RecipientChild {
@@ -39,10 +40,10 @@ export default function RecipientChild({
     setAllItemsRowKeys([2]);
   }
 
-  // ? this function must be used as the onChange callback,
-  // ? to set the amount of key's respective amount in the
-  // ? state item in the itemAmountsAndKeys array
   function refreshServiceAmountUsingChildKey(amount: number, key: number) {
+    // ? this function must be used as the onChange callback,
+    // ? to set the amount of key's respective amount in the
+    // ? state item in the itemAmountsAndKeys array
     if (!keyIsInTotalAmounts(key, itemAmountsAndKeys)) {
       const newAmountAndKey: AmountAndKey = { amount, key };
       setItemAmountsAndKeys([...itemAmountsAndKeys, newAmountAndKey]);
@@ -57,8 +58,8 @@ export default function RecipientChild({
     );
   }
 
-  // ? handles the deletion of a InvoicedItems row
   function removeItemChildRow(key: number) {
+    // ? handles the deletion of a InvoicedItems row
     deleteKeyAndCallbackSetState(key, allItemsRowKeys, setAllItemsRowKeys);
     removeByKeyAndCallbackSetState(
       key,
@@ -67,9 +68,9 @@ export default function RecipientChild({
     );
   }
 
-  // ? This is what sets the total for the invoice
-  // ? it watches for changes in the InvoicedItem children
   useEffect(() => {
+    // ? This is what sets the total for the invoice
+    // ? it watches for changes in the InvoicedItem children
     let newInvoiceTotal = 0;
 
     itemAmountsAndKeys.forEach((e) => {
@@ -80,7 +81,7 @@ export default function RecipientChild({
   }, [itemAmountsAndKeys, allItemsRowKeys]);
 
   return (
-    <div className="reactive-recipient-children">
+    <div className="reactive-recipient-children" id={invoiceNumberAsString}>
       <Row>
         <Col>
           <h4 className="mx-1">Recipient details</h4>
@@ -93,24 +94,36 @@ export default function RecipientChild({
         <Row className="g-2">
           <Col>
             <FloatingLabel label="Full name">
-              <Form.Control type="name" placeholder="John Smith" />
+              <Form.Control type="name" placeholder="John Smith" id="name" />
             </FloatingLabel>
           </Col>
           <Col>
             <FloatingLabel label="Email">
-              <Form.Control type="email" placeholder="example@test.com" />
+              <Form.Control
+                type="email"
+                placeholder="example@test.com"
+                id="email"
+              />
             </FloatingLabel>
           </Col>
         </Row>
         <Row className="g-2 my-1 mb-3">
           <Col md={{ span: 8 }}>
             <FloatingLabel label="Address (optional)">
-              <Form.Control type="address" placeholder="John Smith" />
+              <Form.Control
+                type="address"
+                placeholder="1 Test Avenue"
+                id="address"
+              />
             </FloatingLabel>
           </Col>
           <Col md={{ span: 4 }}>
             <FloatingLabel label="Date (Optional)">
-              <Form.Control type="address" placeholder="John Smith" />
+              <Form.Control
+                type="string"
+                placeholder={getTodaysDate()}
+                id="date"
+              />
             </FloatingLabel>
           </Col>
         </Row>
@@ -119,6 +132,7 @@ export default function RecipientChild({
         <div id="all-invoiced-amount-rows">
           <InvoicedItem
             key={1}
+            id={"1"}
             bubbleUpTotalAmount={(amount: number) =>
               refreshServiceAmountUsingChildKey(amount, 1)
             }
@@ -129,6 +143,7 @@ export default function RecipientChild({
                 return (
                   <InvoicedItem
                     key={key}
+                    id={key.toString()}
                     bubbleUpTotalAmount={(amount: number) =>
                       refreshServiceAmountUsingChildKey(amount, key)
                     }
@@ -151,6 +166,7 @@ export default function RecipientChild({
                 value={`$${totalInvoiceAmount.toFixed(2)}`}
                 plaintext
                 readOnly
+                id="invoice-total"
               />
             </Col>
           </Row>

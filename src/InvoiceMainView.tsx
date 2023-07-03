@@ -8,11 +8,16 @@ import {
   removeByKeyAndCallbackSetState,
   incrementId,
   convertToInvoiceNumberAsString,
+  checkIfStringIsOnlyWhitespace,
 } from "./utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import RecipientChild from "./RecipientChild";
 import InvoiceSenderDetails from "./InvoiceSenderDetails";
-import { createAllInvoices } from "./robust-test";
+import {
+  InvoiceFields,
+  ItemFields,
+  createAllInvoices,
+} from "./invoiceGenerationLogic";
 
 export default function InvoiceMainView() {
   const [allRecipientChildKeys, setAllRecipientChildKeys] = useState<number[]>(
@@ -22,6 +27,7 @@ export default function InvoiceMainView() {
     InvoiceItemsAndKey[]
   >([]);
   const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("0098");
+  const recipientParentRef = useRef<HTMLDivElement>(null);
 
   function handleAddRecipientChild() {
     if (allRecipientChildKeys.length !== 0) {
@@ -71,8 +77,81 @@ export default function InvoiceMainView() {
     );
   }
 
-  useEffect(() => createAllInvoices(), []);
+  function handleGenerateInvoices() {
+    const whatWeWorkingWith =
+      recipientParentRef.current?.getElementsByClassName(
+        "reactive-recipient-children"
+      );
 
+    let processedStuff: any[] = [];
+
+    if (whatWeWorkingWith) {
+      const allRecipients = [...whatWeWorkingWith];
+      allRecipients.forEach((e) => {
+        // ? This confusing use of the spread syntax is to immediately convert
+        // ?from an html collection to an array
+        const allInputKids = [...e.getElementsByTagName("input")];
+
+        let recipientObject = {} as InvoiceFields;
+        recipientObject.items = [];
+
+        // ? and this is to find each by their id and sort them into the object
+        allInputKids.forEach((e) => {
+          if (e.id === "name") recipientObject.to = e.value;
+          // TODO TAKE THE REST OF THE DATA FORM THE CHILD
+        });
+
+        const allItemRows = [
+          ...e.getElementsByClassName("invoiced-items-rows"),
+        ];
+
+        allItemRows.forEach((e) => {
+          const inputChildrenOfItems = [...e.getElementsByTagName("input")];
+
+          let rowedItem: ItemFields = {} as ItemFields;
+          let itemName = "";
+          let quantity = "";
+          let rate = "";
+          inputChildrenOfItems.forEach((e) => {
+            switch (e.id) {
+              case "item-name":
+                itemName = e.value;
+                break;
+              case "quantity":
+                quantity = e.value;
+                break;
+              case "rate":
+                rate = e.value;
+                break;
+            }
+          });
+
+          rowedItem = { name: itemName, quantity, rate };
+          recipientObject.items.push(rowedItem);
+        });
+
+        processedStuff.push(recipientObject);
+      });
+    }
+
+    console.log(processedStuff);
+  }
+
+  /*
+  
+  
+  logic?
+
+  change flag isLoading to true
+  children bubble up their data, keyed with their invoice number
+  
+  ....
+
+  or we could just loop through the entire page's inputs
+  
+  
+  
+  */
   return (
     <section id="invoice-main-view">
       <h2 className="my-4 text-center">Let's send some invoices!</h2>
@@ -85,7 +164,7 @@ export default function InvoiceMainView() {
           <h4 className="my-4">
             Please enter the details of each recipient below...
           </h4>
-          <div id="all-recipients">
+          <div id="all-recipients" ref={recipientParentRef}>
             <RecipientChild
               key={1}
               invoiceNumberAsString={initialInvoiceNumber}
@@ -112,7 +191,12 @@ export default function InvoiceMainView() {
         </Button>
       </Container>
       <Container className="center-children my-5">
-        <Button variant="outline-primary" size={"lg"} className="mx-5">
+        <Button
+          variant="outline-primary"
+          size={"lg"}
+          className="mx-5"
+          onClick={handleGenerateInvoices}
+        >
           Generate invoices
         </Button>
         <Button variant="outline-success" size={"lg"} className="mx-5">

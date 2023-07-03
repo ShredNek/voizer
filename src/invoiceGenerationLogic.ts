@@ -1,8 +1,16 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import font from "./largeAssets/Urbanist.js";
+import font from "./assets/misc/Urbanist.js";
 
-interface InvoiceFields {
+let baseInvoiceNumber = "0779";
+const fromDetails =
+  "Daniel Lee \ntest@gmail.com \nPhone: xxxx xxx xxx \nABN: 123456789";
+const notesDetails =
+  "Payment VIA direct deposit \nBSB: 123456 \nACC: 123456789";
+const termsDetails =
+  "NOTE: PLEASE QUOTE YOUR INVOICE NUMBER IN YOUR PAYMENT STATEMENT. THE SYSTEM DETECTS YOUR PAYMENT WITH THIS NUMBER.";
+
+export interface InvoiceFields {
   from: string;
   to: string;
   items: ItemFields[];
@@ -10,13 +18,16 @@ interface InvoiceFields {
   terms: string;
 }
 
-interface ItemFields {
+export interface ItemFields {
   name: string;
   quantity: string;
-  amount: string;
+  rate: string;
 }
 
-const generateInvoice = (invoiceData: InvoiceFields, invoiceNumber: string) => {
+export function generateInvoice(
+  invoiceData: InvoiceFields,
+  invoiceNumber: string
+) {
   const rowTotals = generateInvoiceRowTotals(invoiceData);
   const invoiceTotal = generateInvoiceTotal(rowTotals);
   const rowedItems = generateRowedItems(invoiceData.items);
@@ -304,7 +315,7 @@ const generateInvoice = (invoiceData: InvoiceFields, invoiceNumber: string) => {
   // });
 
   return doc.save("invoice");
-};
+}
 
 function getDateAfterOneWeek() {
   const today = new Date();
@@ -323,7 +334,7 @@ function generateInvoiceTotal(rowAmounts: number[]) {
 function generateInvoiceRowTotals(invoiceData: InvoiceFields) {
   let rowTotals: number[] = [];
   invoiceData.items.forEach((e) => {
-    rowTotals.push(Number(e.quantity) * Number(e.amount));
+    rowTotals.push(Number(e.quantity) * Number(e.rate));
   });
   return rowTotals;
 }
@@ -333,11 +344,11 @@ function generateRowedItems(items: ItemFields[]) {
 
   // ? row item schema = ["Product or service name", "2", "$450", "$1000"],
   items.forEach((item) => {
-    const rowTotal = Number(item.quantity) * Number(item.amount);
+    const rowTotal = Number(item.quantity) * Number(item.rate);
     allRowedItems.push([
       item.name,
       item.quantity,
-      "$" + item.amount,
+      "$" + item.rate,
       "$" + rowTotal.toString(),
     ]);
   });
@@ -345,73 +356,22 @@ function generateRowedItems(items: ItemFields[]) {
   return allRowedItems;
 }
 
-let baseInvoiceNumber = "0779";
-const fromDetails =
-  "Daniel Lee \ndanielleemusic98@gmail.com \nPhone: 0422 820 583 \nABN: 36120849966";
-const notesDetails =
-  "Payment VIA direct deposit \nBSB: 944600 \nACC: 016778510";
-const termsDetails =
-  "NOTE: PLEASE QUOTE YOUR INVOICE NUMBER IN YOUR PAYMENT STATEMENT. THE SYSTEM DETECTS YOUR PAYMENT WITH THIS NUMBER.";
-
-const peopleToInvoice: InvoiceFields[] = [
-  {
-    from: fromDetails,
-    to: "Mel Smith",
-    items: [{ name: "Music Lesson - 1 Hour", quantity: "1", amount: "60" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Ainsley McLennan",
-    items: [{ name: "Music Lesson - 1 Hour", quantity: "1", amount: "55" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Campbell Spratt",
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", amount: "30" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Sam Fitch",
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", amount: "30" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Dash Crowther",
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", amount: "30" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Lukas Venix",
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", amount: "30" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Jack Gempton",
-    items: [{ name: "Music Lesson - 1 hour", quantity: "1", amount: "56" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-];
+export function createAllInvoices(
+  allInvoices: InvoiceFields[],
+  baseInvoiceNumber: number
+) {
+  allInvoices.forEach((invoice) => {
+    generateInvoice(invoice, baseInvoiceNumber.toString());
+  });
+}
 
 const testUser: InvoiceFields = {
   from: fromDetails,
   to: "Billy bob",
   items: [
-    { name: "Music Lesson - 1 Hour", quantity: "1", amount: "60" },
-    { name: "Music Lesson - 1 Hour", quantity: "5", amount: "89.67" },
-    { name: "Hinga hjret", quantity: "4", amount: "81.49" },
+    { name: "Music Lesson - 1 Hour", quantity: "1", rate: "60" },
+    { name: "Music Lesson - 1 Hour", quantity: "5", rate: "89.67" },
+    { name: "Hinga hjret", quantity: "4", rate: "81.49" },
   ],
   notes: notesDetails,
   terms: termsDetails,
@@ -422,9 +382,9 @@ const testArray: InvoiceFields[] = [
     from: fromDetails,
     to: "Billy bob",
     items: [
-      { name: "Music Lesson - 1 Hour", quantity: "1", amount: "60" },
-      { name: "Music Lesson - 1 Hour", quantity: "5", amount: "89.67" },
-      { name: "Hinga hjret", quantity: "4", amount: "81.49" },
+      { name: "Music Lesson - 1 Hour", quantity: "1", rate: "60" },
+      { name: "Music Lesson - 1 Hour", quantity: "5", rate: "89.67" },
+      { name: "Hinga hjret", quantity: "4", rate: "81.49" },
     ],
     notes: notesDetails,
     terms: termsDetails,
@@ -433,107 +393,9 @@ const testArray: InvoiceFields[] = [
     from: fromDetails,
     to: "rodger mac",
     items: [
-      { name: "Margret thatcher", quantity: "8", amount: "21.99" },
-      { name: "Logi maji", quantity: "15", amount: "34.51" },
+      { name: "Margret thatcher", quantity: "8", rate: "21.99" },
+      { name: "Logi maji", quantity: "15", rate: "34.51" },
     ],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-];
-
-export function createAllInvoices() {
-  // peopleToInvoice.forEach((personsData) => {
-  //   generateInvoiceRequest(personsData);
-  // });
-  generateInvoice(testUser, baseInvoiceNumber);
-}
-
-/*
-
-
-
-
-
-
-*/
-const idealPeopleToInvoice = [
-  {
-    from: fromDetails,
-    to: "Mitch Haywood",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 1 Hour", quantity: "1", unit_cost: "55" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Mel Smith",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 1 Hour", quantity: "1", unit_cost: "60" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Gus Pearce",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 1 Hour", quantity: "1", unit_cost: "58" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Ainsley McLennan",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 1 Hour", quantity: "1", unit_cost: "55" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Campbell Spratt",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", unit_cost: "30" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Campbell Robertson",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", unit_cost: "30" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Sam Fitch",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", unit_cost: "30" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Dash Crowther",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", unit_cost: "30" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Lukas Venix",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", unit_cost: "30" }],
-    notes: notesDetails,
-    terms: termsDetails,
-  },
-  {
-    from: fromDetails,
-    to: "Jack Gempton",
-    number: baseInvoiceNumber,
-    items: [{ name: "Music Lesson - 30 mins", quantity: "1", unit_cost: "32" }],
     notes: notesDetails,
     terms: termsDetails,
   },
