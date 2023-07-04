@@ -3,31 +3,37 @@ import autoTable from "jspdf-autotable";
 import font from "./assets/misc/Urbanist.js";
 
 let baseInvoiceNumber = "0779";
-const fromDetails =
-  "Daniel Lee \ntest@gmail.com \nPhone: xxxx xxx xxx \nABN: 123456789";
+const fromDetails = {
+  name: "Daniel Lee",
+  email: "test@gmail.com",
+  number: "xxxx xxx xxx",
+  businessNumber: "123456789",
+};
 const notesDetails =
-  "Payment VIA direct deposit \nBSB: 123456 \nACC: 123456789";
-const termsDetails =
-  "NOTE: PLEASE QUOTE YOUR INVOICE NUMBER IN YOUR PAYMENT STATEMENT. THE SYSTEM DETECTS YOUR PAYMENT WITH THIS NUMBER.";
+  "Payment VIA direct deposit \nBSB: 123456 \nACC: 123456789 \nNOTE: PLEASE QUOTE YOUR INVOICE NUMBER IN YOUR PAYMENT STATEMENT. THE SYSTEM DETECTS YOUR PAYMENT WITH THIS NUMBER.";
 
 export interface InvoiceFields {
-  from: string;
+  from: InvoiceSenderFields;
   to: string;
   items: ItemFields[];
   notes: string;
-  terms: string;
+  invoiceNumber: string;
 }
 
 export interface ItemFields {
-  name: string;
+  itemName: string;
   quantity: string;
   rate: string;
 }
 
-export function generateInvoice(
-  invoiceData: InvoiceFields,
-  invoiceNumber: string
-) {
+export interface InvoiceSenderFields {
+  name: string;
+  email?: string;
+  number?: string;
+  businessNumber?: string;
+}
+
+export function generateInvoice(invoiceData: InvoiceFields) {
   const rowTotals = generateInvoiceRowTotals(invoiceData);
   const invoiceTotal = generateInvoiceTotal(rowTotals);
   const rowedItems = generateRowedItems(invoiceData.items);
@@ -81,7 +87,7 @@ export function generateInvoice(
         {
           content:
             "Invoice Number: #INV" +
-            invoiceNumber +
+            invoiceData.invoiceNumber +
             "\nDate: " +
             defaultSentDate,
           styles: {
@@ -125,7 +131,7 @@ export function generateInvoice(
         //   },
         // },
         {
-          content: "From:" + "\n" + invoiceData.from,
+          content: "From:" + "\n" + invoiceData.from.name,
           // ? if you want to include your address, uncomment these lines "\nBilling Address line 1" +
           // ? if you want to include your address, uncomment these lines "\nBilling Address line 2" +
           // ? if you want to include your address, uncomment these lines "\nZip code - City" +
@@ -286,7 +292,7 @@ export function generateInvoice(
       ],
       [
         {
-          content: invoiceData.notes + "\n\n" + invoiceData.terms,
+          content: invoiceData.notes,
           styles: {
             halign: "left",
             font: "Urbanist",
@@ -314,7 +320,7 @@ export function generateInvoice(
   //   theme: "plain",
   // });
 
-  return doc.save("invoice");
+  return doc.save(`INV#${invoiceData.invoiceNumber}`);
 }
 
 function getDateAfterOneWeek() {
@@ -346,7 +352,7 @@ function generateRowedItems(items: ItemFields[]) {
   items.forEach((item) => {
     const rowTotal = Number(item.quantity) * Number(item.rate);
     allRowedItems.push([
-      item.name,
+      item.itemName,
       item.quantity,
       "$" + item.rate,
       "$" + rowTotal.toString(),
@@ -356,12 +362,9 @@ function generateRowedItems(items: ItemFields[]) {
   return allRowedItems;
 }
 
-export function createAllInvoices(
-  allInvoices: InvoiceFields[],
-  baseInvoiceNumber: number
-) {
+export function createAllInvoices(allInvoices: InvoiceFields[]) {
   allInvoices.forEach((invoice) => {
-    generateInvoice(invoice, baseInvoiceNumber.toString());
+    generateInvoice(invoice);
   });
 }
 
@@ -369,12 +372,12 @@ const testUser: InvoiceFields = {
   from: fromDetails,
   to: "Billy bob",
   items: [
-    { name: "Music Lesson - 1 Hour", quantity: "1", rate: "60" },
-    { name: "Music Lesson - 1 Hour", quantity: "5", rate: "89.67" },
-    { name: "Hinga hjret", quantity: "4", rate: "81.49" },
+    { itemName: "Music Lesson - 1 Hour", quantity: "1", rate: "60" },
+    { itemName: "Music Lesson - 1 Hour", quantity: "5", rate: "89.67" },
+    { itemName: "Hinga hjret", quantity: "4", rate: "81.49" },
   ],
   notes: notesDetails,
-  terms: termsDetails,
+  invoiceNumber: baseInvoiceNumber,
 };
 
 const testArray: InvoiceFields[] = [
@@ -382,21 +385,21 @@ const testArray: InvoiceFields[] = [
     from: fromDetails,
     to: "Billy bob",
     items: [
-      { name: "Music Lesson - 1 Hour", quantity: "1", rate: "60" },
-      { name: "Music Lesson - 1 Hour", quantity: "5", rate: "89.67" },
-      { name: "Hinga hjret", quantity: "4", rate: "81.49" },
+      { itemName: "Music Lesson - 1 Hour", quantity: "1", rate: "60" },
+      { itemName: "Music Lesson - 1 Hour", quantity: "5", rate: "89.67" },
+      { itemName: "Hinga hjret", quantity: "4", rate: "81.49" },
     ],
     notes: notesDetails,
-    terms: termsDetails,
+    invoiceNumber: baseInvoiceNumber,
   },
   {
     from: fromDetails,
     to: "rodger mac",
     items: [
-      { name: "Margret thatcher", quantity: "8", rate: "21.99" },
-      { name: "Logi maji", quantity: "15", rate: "34.51" },
+      { itemName: "Margret thatcher", quantity: "8", rate: "21.99" },
+      { itemName: "Logi maji", quantity: "15", rate: "34.51" },
     ],
     notes: notesDetails,
-    terms: termsDetails,
+    invoiceNumber: (Number(baseInvoiceNumber) + 1).toString(),
   },
 ];

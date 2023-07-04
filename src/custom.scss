@@ -34,6 +34,12 @@ $subtle-border: 5px;
   border-radius: $subtle-border;
 }
 
+#invoice-sender-details {
+  #notes {
+    max-height: 200px;
+  }
+}
+
 // ? ? ?
 // ? DYNAMICALLY GENERATED RECIPIENTS
 // ? ? ?
@@ -65,8 +71,6 @@ $subtle-border: 5px;
 }
 
 #all-invoiced-amount-rows {
-  max-height: 300px;
-  overflow-y: scroll;
   overflow-x: hidden;
 }
 

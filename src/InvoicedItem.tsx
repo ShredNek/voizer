@@ -56,8 +56,11 @@ export default function InvoicedItem({
               </Button>
             )}
             <FloatingLabel label="Item">
-              <Form.Control type="name" placeholder="First item"
-              id="item-name" />
+              <Form.Control
+                type="name"
+                placeholder="First item"
+                id="item-name"
+              />
             </FloatingLabel>
           </InputGroup>
         </Col>
@@ -67,9 +70,7 @@ export default function InvoicedItem({
               type="number"
               placeholder="0"
               value={quantity}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleOnQuantityChange(e)
-              }
+              onChange={handleOnQuantityChange}
               id="quantity"
             />
           </FloatingLabel>
@@ -80,9 +81,7 @@ export default function InvoicedItem({
               type="number"
               placeholder="0"
               value={rate}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                handleOnRateChange(e)
-              }
+              onChange={handleOnRateChange}
               id="rate"
             />
           </FloatingLabel>

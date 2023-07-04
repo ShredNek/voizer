@@ -16,6 +16,7 @@ import InvoiceSenderDetails from "./InvoiceSenderDetails";
 import {
   InvoiceFields,
   ItemFields,
+  InvoiceSenderFields,
   createAllInvoices,
 } from "./invoiceGenerationLogic";
 
@@ -26,8 +27,9 @@ export default function InvoiceMainView() {
   const [invoiceItemsAndKeys, setItemServiceAmountsAndKeys] = useState<
     InvoiceItemsAndKey[]
   >([]);
-  const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("0098");
+  const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("0001");
   const recipientParentRef = useRef<HTMLDivElement>(null);
+  const invoiceSenderDetailsRef = useRef<HTMLDivElement>(null);
 
   function handleAddRecipientChild() {
     if (allRecipientChildKeys.length !== 0) {
@@ -38,13 +40,13 @@ export default function InvoiceMainView() {
     setAllRecipientChildKeys([0]);
   }
 
-  // ? this function must be used as the onChange callback,
-  // ? to set the amount of key's respective amount in the
-  // ? state item in the itemServiceAmountsAndKeys array
   function refreshServiceAmountUsingChildKey(
     invoiceItems: InvoiceItem[],
     key: number
   ) {
+    // ? this function must be used as the onChange callback,
+    // ? to set the amount of key's respective amount in the
+    // ? state item in the itemServiceAmountsAndKeys array
     if (!keyIsInTotalAmounts(key, invoiceItemsAndKeys)) {
       const newInvoiceItemAndKey = { invoiceItems, key };
       setItemServiceAmountsAndKeys([
@@ -62,13 +64,13 @@ export default function InvoiceMainView() {
     );
   }
 
-  // ? handles the deletion of a RecipientChild row
   function handleRecipientChildDeletion(key: number) {
     deleteKeyAndCallbackSetState(
       key,
       allRecipientChildKeys,
       setAllRecipientChildKeys
     );
+    // ? handles the deletion of a RecipientChild row
 
     removeByKeyAndCallbackSetState(
       key,
@@ -83,50 +85,91 @@ export default function InvoiceMainView() {
         "reactive-recipient-children"
       );
 
-    let processedStuff: any[] = [];
+    let processedStuff: InvoiceFields[] = [];
+
+    const invoiceSenderInputs =
+      invoiceSenderDetailsRef.current?.getElementsByTagName("input");
+
+    let invoiceSenderDetails = {} as InvoiceSenderFields;
+    let invoiceSenderNotes = "";
+
+    const invoiceSenderTextareas =
+      invoiceSenderDetailsRef.current?.getElementsByTagName("textarea");
+
+    if (invoiceSenderTextareas) {
+      const other = [...invoiceSenderTextareas];
+      other.forEach((e) => {
+        switch (e.id) {
+          case "notes":
+            invoiceSenderNotes = e.value;
+            break;
+        }
+      });
+    }
+
+    if (invoiceSenderInputs) {
+      const fuJs = [...invoiceSenderInputs];
+      fuJs.forEach((e) => {
+        switch (e.id) {
+          case "name":
+            invoiceSenderDetails.name = e.value;
+            break;
+          case "email":
+            invoiceSenderDetails.email = e.value;
+            break;
+          case "number":
+            invoiceSenderDetails.number = e.value;
+            break;
+          case "business-number":
+            invoiceSenderDetails.businessNumber = e.value;
+            break;
+        }
+      });
+    }
 
     if (whatWeWorkingWith) {
       const allRecipients = [...whatWeWorkingWith];
       allRecipients.forEach((e) => {
-        // ? This confusing use of the spread syntax is to immediately convert
-        // ?from an html collection to an array
-        const allInputKids = [...e.getElementsByTagName("input")];
-
         let recipientObject = {} as InvoiceFields;
+
+        // ? the id of the child is it's invoice number
+        recipientObject.invoiceNumber = e.id;
+        recipientObject.notes = invoiceSenderNotes;
+        recipientObject.from = invoiceSenderDetails;
         recipientObject.items = [];
 
+        // ? This confusing use of the spread syntax is to immediately convert
+        // ? from an html collection to an array
+        const allInputElems = [...e.getElementsByTagName("input")];
         // ? and this is to find each by their id and sort them into the object
-        allInputKids.forEach((e) => {
+        allInputElems.forEach((e) => {
           if (e.id === "name") recipientObject.to = e.value;
           // TODO TAKE THE REST OF THE DATA FORM THE CHILD
         });
 
-        const allItemRows = [
+        const allItemRowsElems = [
           ...e.getElementsByClassName("invoiced-items-rows"),
         ];
 
-        allItemRows.forEach((e) => {
-          const inputChildrenOfItems = [...e.getElementsByTagName("input")];
+        // TODO - refactor this bulky code
+        allItemRowsElems.forEach((e) => {
+          const inputElemsOfItems = [...e.getElementsByTagName("input")];
 
-          let rowedItem: ItemFields = {} as ItemFields;
-          let itemName = "";
-          let quantity = "";
-          let rate = "";
-          inputChildrenOfItems.forEach((e) => {
+          let rowedItem = {} as ItemFields;
+          inputElemsOfItems.forEach((e) => {
             switch (e.id) {
               case "item-name":
-                itemName = e.value;
+                rowedItem.itemName = e.value;
                 break;
               case "quantity":
-                quantity = e.value;
+                rowedItem.quantity = e.value;
                 break;
               case "rate":
-                rate = e.value;
+                rowedItem.rate = e.value;
                 break;
             }
           });
 
-          rowedItem = { name: itemName, quantity, rate };
           recipientObject.items.push(rowedItem);
         });
 
@@ -134,6 +177,7 @@ export default function InvoiceMainView() {
       });
     }
 
+    createAllInvoices(processedStuff);
     console.log(processedStuff);
   }
 
@@ -159,7 +203,13 @@ export default function InvoiceMainView() {
       <Container>
         <Form>
           <h4>Invoice sender's details:</h4>
-          <InvoiceSenderDetails />
+          <div ref={invoiceSenderDetailsRef}>
+            <InvoiceSenderDetails
+              bubbleUpInitialInvoiceNumber={(newInvoiceNumber) =>
+                setInitialInvoiceNumber(() => newInvoiceNumber)
+              }
+            />
+          </div>
           <div className="divider" />
           <h4 className="my-4">
             Please enter the details of each recipient below...
@@ -194,12 +244,12 @@ export default function InvoiceMainView() {
         <Button
           variant="outline-primary"
           size={"lg"}
-          className="mx-5"
+          className="mx-2"
           onClick={handleGenerateInvoices}
         >
           Generate invoices
         </Button>
-        <Button variant="outline-success" size={"lg"} className="mx-5">
+        <Button variant="outline-success" size={"lg"} className="mx-2">
           Send all invoices
         </Button>
       </Container>
