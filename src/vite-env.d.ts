@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_APP_TITLE: string;
-  readonly VITE_POSTMAN_KEY: string;
+  readonly VITE_EMAIL_ENDPOINT: string;
   // more env vars...
 }
 

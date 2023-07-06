@@ -2,23 +2,21 @@ import { Form, Container, Button } from "react-bootstrap";
 import {
   keyIsInTotalAmounts,
   InvoiceItemsAndKey,
-  InvoiceItem,
   getInvoiceItemByKeyAndCallbackSetState,
   deleteKeyAndCallbackSetState,
   removeByKeyAndCallbackSetState,
   incrementId,
   convertToInvoiceNumberAsString,
-  checkIfStringIsOnlyWhitespace,
 } from "./utils";
 import { useState, useEffect, useRef } from "react";
 import RecipientChild from "./RecipientChild";
 import InvoiceSenderDetails from "./InvoiceSenderDetails";
 import {
   InvoiceFields,
-  ItemFields,
-  InvoiceSenderFields,
-  createAllInvoices,
-} from "./invoiceGenerationLogic";
+  InvoiceItemFields,
+  PersonalDetails,
+} from "../interfaces/invoices";
+import { createAllInvoices } from "./invoiceGenerationLogic";
 
 export default function InvoiceMainView() {
   const [allRecipientChildKeys, setAllRecipientChildKeys] = useState<number[]>(
@@ -40,8 +38,9 @@ export default function InvoiceMainView() {
     setAllRecipientChildKeys([0]);
   }
 
+  // ! WHAT PURPOSE DOES THIS SERVE???
   function refreshServiceAmountUsingChildKey(
-    invoiceItems: InvoiceItem[],
+    invoiceItems: InvoiceItemFields[],
     key: number
   ) {
     // ? this function must be used as the onChange callback,
@@ -79,18 +78,18 @@ export default function InvoiceMainView() {
     );
   }
 
-  function handleGenerateInvoices() {
+  function createInvoices() {
     const whatWeWorkingWith =
       recipientParentRef.current?.getElementsByClassName(
         "reactive-recipient-children"
       );
 
-    let processedStuff: InvoiceFields[] = [];
+    let allCreatedInvoices: InvoiceFields[] = [];
 
     const invoiceSenderInputs =
       invoiceSenderDetailsRef.current?.getElementsByTagName("input");
 
-    let invoiceSenderDetails = {} as InvoiceSenderFields;
+    let invoiceSenderDetails = {} as PersonalDetails;
     let invoiceSenderNotes = "";
 
     const invoiceSenderTextareas =
@@ -136,6 +135,7 @@ export default function InvoiceMainView() {
         recipientObject.invoiceNumber = e.id;
         recipientObject.notes = invoiceSenderNotes;
         recipientObject.from = invoiceSenderDetails;
+        recipientObject.to = {} as PersonalDetails;
         recipientObject.items = [];
 
         // ? This confusing use of the spread syntax is to immediately convert
@@ -143,7 +143,14 @@ export default function InvoiceMainView() {
         const allInputElems = [...e.getElementsByTagName("input")];
         // ? and this is to find each by their id and sort them into the object
         allInputElems.forEach((e) => {
-          if (e.id === "name") recipientObject.to = e.value;
+          switch (e.id) {
+            case "name":
+              recipientObject.to.name = e.value;
+              break;
+            case "email":
+              recipientObject.to.email = e.value;
+              break;
+          }
           // TODO TAKE THE REST OF THE DATA FORM THE CHILD
         });
 
@@ -155,7 +162,7 @@ export default function InvoiceMainView() {
         allItemRowsElems.forEach((e) => {
           const inputElemsOfItems = [...e.getElementsByTagName("input")];
 
-          let rowedItem = {} as ItemFields;
+          let rowedItem = {} as InvoiceItemFields;
           inputElemsOfItems.forEach((e) => {
             switch (e.id) {
               case "item-name":
@@ -173,29 +180,23 @@ export default function InvoiceMainView() {
           recipientObject.items.push(rowedItem);
         });
 
-        processedStuff.push(recipientObject);
+        allCreatedInvoices.push(recipientObject);
       });
     }
-
-    createAllInvoices(processedStuff);
-    console.log(processedStuff);
+    return allCreatedInvoices;
   }
 
-  /*
-  
-  
-  logic?
+  function handleGenerateAndDownloadInvoices() {
+    const processedStuff = createInvoices();
 
-  change flag isLoading to true
-  children bubble up their data, keyed with their invoice number
-  
-  ....
+    createAllInvoices(processedStuff, "download");
+  }
 
-  or we could just loop through the entire page's inputs
-  
-  
-  
-  */
+  function handleGenerateAndEmailInvoices() {
+    const processedStuff = createInvoices();
+    createAllInvoices(processedStuff, "email");
+  }
+
   return (
     <section id="invoice-main-view">
       <h2 className="my-4 text-center">Let's send some invoices!</h2>
@@ -245,42 +246,19 @@ export default function InvoiceMainView() {
           variant="outline-primary"
           size={"lg"}
           className="mx-2"
-          onClick={handleGenerateInvoices}
+          onClick={handleGenerateAndDownloadInvoices}
         >
           Generate invoices
         </Button>
-        <Button variant="outline-success" size={"lg"} className="mx-2">
+        <Button
+          variant="outline-success"
+          size={"lg"}
+          className="mx-2"
+          onClick={handleGenerateAndEmailInvoices}
+        >
           Send all invoices
         </Button>
       </Container>
     </section>
   );
 }
-
-/* 
-      
-      what does the input look like?
-
-      begin with senders 
-        - name, 
-        - address, 
-        - number (optional), 
-        - business number (optional)
-
-      include optional initial invoice number (for multiple invoices)
-
-      MARK EACH CHILD ELEM WITH INVOICE NUMBER AS INCREMETED FROM INITIAL NUMBER
-
-      a list of children elems, each with a:
-        - receiver full name
-        - receiver email address
-        - receiver physical address (if needed)
-        - date (optional)
-        - item name, quantity, rate
-        - note & terms
-
-      can choose to increase the list with a plus button beneath each entry
-
-
-      
-      */

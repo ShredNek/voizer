@@ -1,39 +1,15 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import font from "./assets/misc/Urbanist.js";
+import { sendEmail } from "./utils.ts";
+import { InvoiceFields, InvoiceItemFields } from "../interfaces/invoices.ts";
 
-let baseInvoiceNumber = "0779";
-const fromDetails = {
-  name: "Daniel Lee",
-  email: "test@gmail.com",
-  number: "xxxx xxx xxx",
-  businessNumber: "123456789",
-};
-const notesDetails =
-  "Payment VIA direct deposit \nBSB: 123456 \nACC: 123456789 \nNOTE: PLEASE QUOTE YOUR INVOICE NUMBER IN YOUR PAYMENT STATEMENT. THE SYSTEM DETECTS YOUR PAYMENT WITH THIS NUMBER.";
+export type invoiceReturnMethod = "download" | "email";
 
-export interface InvoiceFields {
-  from: InvoiceSenderFields;
-  to: string;
-  items: ItemFields[];
-  notes: string;
-  invoiceNumber: string;
-}
-
-export interface ItemFields {
-  itemName: string;
-  quantity: string;
-  rate: string;
-}
-
-export interface InvoiceSenderFields {
-  name: string;
-  email?: string;
-  number?: string;
-  businessNumber?: string;
-}
-
-export function generateInvoice(invoiceData: InvoiceFields) {
+export function generateInvoice(
+  invoiceData: InvoiceFields,
+  returnMethod: invoiceReturnMethod
+) {
   const rowTotals = generateInvoiceRowTotals(invoiceData);
   const invoiceTotal = generateInvoiceTotal(rowTotals);
   const rowedItems = generateRowedItems(invoiceData.items);
@@ -107,11 +83,12 @@ export function generateInvoice(invoiceData: InvoiceFields) {
     body: [
       [
         {
-          content: "Billed to:" + "\n" + invoiceData.to,
-          // ? if you want to include your address, uncomment these lines "\nBilling Address line 1" +
-          // ? if you want to include your address, uncomment these lines "\nBilling Address line 2" +
-          // ? if you want to include your address, uncomment these lines "\nZip code - City" +
-          // ? if you want to include your address, uncomment these lines "\nCountry"
+          content:
+            "Billed to:" +
+            "\n" +
+            invoiceData.to.name +
+            "\n" +
+            invoiceData.to.email,
           styles: {
             halign: "left",
             font: "Urbanist",
@@ -131,11 +108,12 @@ export function generateInvoice(invoiceData: InvoiceFields) {
         //   },
         // },
         {
-          content: "From:" + "\n" + invoiceData.from.name,
-          // ? if you want to include your address, uncomment these lines "\nBilling Address line 1" +
-          // ? if you want to include your address, uncomment these lines "\nBilling Address line 2" +
-          // ? if you want to include your address, uncomment these lines "\nZip code - City" +
-          // ? if you want to include your address, uncomment these lines "\nCountry"
+          content:
+            "Billed from:" +
+            "\n" +
+            invoiceData.from.name +
+            "\n" +
+            invoiceData.from.email,
           styles: {
             halign: "right",
             font: "Urbanist",
@@ -240,7 +218,7 @@ export function generateInvoice(invoiceData: InvoiceFields) {
           },
         },
       ],
-      // ! IF YOU WANT TO ADD TAX, UNCOMENT THIS
+      // ! IF YOU WANT TO ADD TAX, UNCOMMENT THIS
       // [
       //   {
       //     content: "Total tax:",
@@ -303,24 +281,17 @@ export function generateInvoice(invoiceData: InvoiceFields) {
     theme: "plain",
   });
 
-  // ? ? ? ? ? ?
-  // ? FOOTER ?
-  // ? ? ? ? ?
-  // autoTable(doc, {
-  //   body: [
-  //     [
-  //       {
-  //         content: "This is a centered footer",
-  //         styles: {
-  //           halign: "center",
-  //         },
-  //       },
-  //     ],
-  //   ],
-  //   theme: "plain",
-  // });
+  const pdfOutput = doc.output("datauristring");
+  const base64 = pdfOutput.replace(
+    /^data:application\/pdf;filename=generated.pdf;base64,/,
+    ""
+  );
 
-  return doc.save(`INV#${invoiceData.invoiceNumber}`);
+  if (returnMethod === "download") {
+    return doc.save(`INV#${invoiceData.invoiceNumber}`);
+  } else if (returnMethod === "email") {
+    return base64;
+  }
 }
 
 function getDateAfterOneWeek() {
@@ -332,9 +303,11 @@ function getDateAfterOneWeek() {
 }
 
 function generateInvoiceTotal(rowAmounts: number[]) {
-  return rowAmounts.reduce((prev, curr) => {
-    return (prev += curr);
-  }, 0);
+  return rowAmounts
+    .reduce((prev, curr) => {
+      return (prev += curr);
+    }, 0)
+    .toFixed(2);
 }
 
 function generateInvoiceRowTotals(invoiceData: InvoiceFields) {
@@ -345,7 +318,7 @@ function generateInvoiceRowTotals(invoiceData: InvoiceFields) {
   return rowTotals;
 }
 
-function generateRowedItems(items: ItemFields[]) {
+function generateRowedItems(items: InvoiceItemFields[]) {
   const allRowedItems: Array<Array<string>> = [];
 
   // ? row item schema = ["Product or service name", "2", "$450", "$1000"],
@@ -355,51 +328,23 @@ function generateRowedItems(items: ItemFields[]) {
       item.itemName,
       item.quantity,
       "$" + item.rate,
-      "$" + rowTotal.toString(),
+      "$" + rowTotal.toFixed(2),
     ]);
   });
 
   return allRowedItems;
 }
 
-export function createAllInvoices(allInvoices: InvoiceFields[]) {
+export function createAllInvoices(
+  allInvoices: InvoiceFields[],
+  returnMethod: invoiceReturnMethod
+) {
   allInvoices.forEach((invoice) => {
-    generateInvoice(invoice);
+    if (returnMethod === "download") {
+      generateInvoice(invoice, returnMethod);
+    } else if (returnMethod === "email") {
+      const encodedInvoice = generateInvoice(invoice, returnMethod) as string;
+      sendEmail(encodedInvoice, invoice);
+    }
   });
 }
-
-const testUser: InvoiceFields = {
-  from: fromDetails,
-  to: "Billy bob",
-  items: [
-    { itemName: "Music Lesson - 1 Hour", quantity: "1", rate: "60" },
-    { itemName: "Music Lesson - 1 Hour", quantity: "5", rate: "89.67" },
-    { itemName: "Hinga hjret", quantity: "4", rate: "81.49" },
-  ],
-  notes: notesDetails,
-  invoiceNumber: baseInvoiceNumber,
-};
-
-const testArray: InvoiceFields[] = [
-  {
-    from: fromDetails,
-    to: "Billy bob",
-    items: [
-      { itemName: "Music Lesson - 1 Hour", quantity: "1", rate: "60" },
-      { itemName: "Music Lesson - 1 Hour", quantity: "5", rate: "89.67" },
-      { itemName: "Hinga hjret", quantity: "4", rate: "81.49" },
-    ],
-    notes: notesDetails,
-    invoiceNumber: baseInvoiceNumber,
-  },
-  {
-    from: fromDetails,
-    to: "rodger mac",
-    items: [
-      { itemName: "Margret thatcher", quantity: "8", rate: "21.99" },
-      { itemName: "Logi maji", quantity: "15", rate: "34.51" },
-    ],
-    notes: notesDetails,
-    invoiceNumber: (Number(baseInvoiceNumber) + 1).toString(),
-  },
-];

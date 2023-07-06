@@ -1,4 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
+import { InvoiceFields, InvoiceItemFields } from "../interfaces/invoices.ts";
+import axios from "axios";
 
 export type numbsThatArePotentiallyNull = number | null;
 
@@ -8,25 +10,9 @@ export interface AmountAndKey {
   amount: number;
   key: number;
 }
-
 export interface InvoiceItemsAndKey {
-  invoiceItems: InvoiceItem[];
+  invoiceItems: InvoiceItemFields[];
   key: number;
-}
-
-export interface InvoiceItem {
-  item: string;
-  quantity: number;
-  rate: number;
-  total: number;
-}
-
-export interface Invoice {
-  fullName: string;
-  email: string;
-  address?: string;
-  date?: string;
-  invoiceItems: InvoiceItem[];
 }
 
 export function handleIfQuantityOrRateIsNull(
@@ -55,7 +41,7 @@ export function keyIsInTotalAmounts(
 
 export function getInvoiceItemByKeyAndCallbackSetState(
   key: number,
-  invoiceItems: InvoiceItem[],
+  invoiceItems: InvoiceItemFields[],
   childArray: InvoiceItemsAndKey[],
   setStateCallback: Dispatch<SetStateAction<InvoiceItemsAndKey[]>>
 ) {
@@ -148,6 +134,18 @@ export function checkIfStringIsOnlyWhitespace(string: string) {
 
 export function getTodaysDate() {
   return new Date().toISOString().split("T")[0];
+}
+
+const emailEndpoint = import.meta.env.VITE_EMAIL_ENDPOINT;
+
+export async function sendEmail(
+  encodedInvoice: string,
+  invoiceDetails: InvoiceFields
+) {
+  axios
+    .post(emailEndpoint, { encodedInvoice, invoiceDetails })
+    .then(() => console.log("no error? wot"))
+    .catch(() => console.log("nah we fucked up"));
 }
 
 export default {};
