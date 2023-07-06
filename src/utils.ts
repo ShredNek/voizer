@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import { InvoiceFields, InvoiceItemFields } from "../interfaces/invoices.ts";
+import { EmailEndpointParameter } from "../interfaces/emails.ts";
 import axios from "axios";
 
 export type numbsThatArePotentiallyNull = number | null;
@@ -136,16 +137,33 @@ export function getTodaysDate() {
   return new Date().toISOString().split("T")[0];
 }
 
+export function getDateAfterOneWeek() {
+  const today = new Date();
+  const nextWeek = new Date(today);
+  nextWeek.setDate(today.getDate() + 7);
+  const formattedDate = nextWeek.toISOString().split("T")[0];
+  return formattedDate;
+}
+
 const emailEndpoint = import.meta.env.VITE_EMAIL_ENDPOINT;
 
-export async function sendEmail(
-  encodedInvoice: string,
-  invoiceDetails: InvoiceFields
-) {
+export async function sendEmail(userArguments: EmailEndpointParameter) {
   axios
-    .post(emailEndpoint, { encodedInvoice, invoiceDetails })
-    .then(() => console.log("no error? wot"))
-    .catch(() => console.log("nah we fucked up"));
+    .post(emailEndpoint, userArguments)
+    .then(() =>
+      console.log(
+        "Good! " +
+          userArguments.invoiceDetails.to.name +
+          " has been sent their invoice"
+      )
+    )
+    .catch(() =>
+      console.log(
+        "nah we fucked up: " +
+          userArguments.invoiceDetails.to.name +
+          " didn't get their invoice"
+      )
+    );
 }
 
 export default {};

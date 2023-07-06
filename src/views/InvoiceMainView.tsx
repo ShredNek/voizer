@@ -1,29 +1,22 @@
 import { Form, Container, Button } from "react-bootstrap";
-import {
-  keyIsInTotalAmounts,
-  InvoiceItemsAndKey,
-  getInvoiceItemByKeyAndCallbackSetState,
-  deleteKeyAndCallbackSetState,
-  removeByKeyAndCallbackSetState,
-  incrementId,
-  convertToInvoiceNumberAsString,
-} from "./utils";
-import { useState, useEffect, useRef } from "react";
-import RecipientChild from "./RecipientChild";
-import InvoiceSenderDetails from "./InvoiceSenderDetails";
+import * as Utils from "../utils";
+import { useState, useRef } from "react";
+import RecipientChild from "../components/RecipientChild";
+import InvoiceSenderDetails from "../components/InvoiceSenderDetails";
+import GenerateOrEmailButtons from "../components/GenerateOrEmailButtons";
 import {
   InvoiceFields,
   InvoiceItemFields,
   PersonalDetails,
-} from "../interfaces/invoices";
-import { createAllInvoices } from "./invoiceGenerationLogic";
+} from "../../interfaces/invoices";
+import { downloadInvoices, emailInvoices } from "../invoiceGenerationLogic";
 
 export default function InvoiceMainView() {
   const [allRecipientChildKeys, setAllRecipientChildKeys] = useState<number[]>(
     []
   );
   const [invoiceItemsAndKeys, setItemServiceAmountsAndKeys] = useState<
-    InvoiceItemsAndKey[]
+    Utils.InvoiceItemsAndKey[]
   >([]);
   const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("0001");
   const recipientParentRef = useRef<HTMLDivElement>(null);
@@ -31,53 +24,29 @@ export default function InvoiceMainView() {
 
   function handleAddRecipientChild() {
     if (allRecipientChildKeys.length !== 0) {
-      const numbToAdd = incrementId(allRecipientChildKeys);
+      const numbToAdd = Utils.incrementId(allRecipientChildKeys);
       setAllRecipientChildKeys([...allRecipientChildKeys, numbToAdd]);
       return;
     }
     setAllRecipientChildKeys([0]);
   }
 
-  // ! WHAT PURPOSE DOES THIS SERVE???
-  function refreshServiceAmountUsingChildKey(
-    invoiceItems: InvoiceItemFields[],
-    key: number
-  ) {
-    // ? this function must be used as the onChange callback,
-    // ? to set the amount of key's respective amount in the
-    // ? state item in the itemServiceAmountsAndKeys array
-    if (!keyIsInTotalAmounts(key, invoiceItemsAndKeys)) {
-      const newInvoiceItemAndKey = { invoiceItems, key };
-      setItemServiceAmountsAndKeys([
-        ...invoiceItemsAndKeys,
-        newInvoiceItemAndKey,
-      ]);
-      return;
-    }
-
-    getInvoiceItemByKeyAndCallbackSetState(
-      key,
-      invoiceItems,
-      invoiceItemsAndKeys,
-      setItemServiceAmountsAndKeys
-    );
-  }
-
   function handleRecipientChildDeletion(key: number) {
-    deleteKeyAndCallbackSetState(
+    Utils.deleteKeyAndCallbackSetState(
       key,
       allRecipientChildKeys,
       setAllRecipientChildKeys
     );
     // ? handles the deletion of a RecipientChild row
 
-    removeByKeyAndCallbackSetState(
+    Utils.removeByKeyAndCallbackSetState(
       key,
       invoiceItemsAndKeys,
       setItemServiceAmountsAndKeys
     );
   }
 
+  // TODO: shorten this overblown function
   function createInvoices() {
     const whatWeWorkingWith =
       recipientParentRef.current?.getElementsByClassName(
@@ -183,18 +152,9 @@ export default function InvoiceMainView() {
         allCreatedInvoices.push(recipientObject);
       });
     }
+
+    console.log(allCreatedInvoices);
     return allCreatedInvoices;
-  }
-
-  function handleGenerateAndDownloadInvoices() {
-    const processedStuff = createInvoices();
-
-    createAllInvoices(processedStuff, "download");
-  }
-
-  function handleGenerateAndEmailInvoices() {
-    const processedStuff = createInvoices();
-    createAllInvoices(processedStuff, "email");
   }
 
   return (
@@ -226,7 +186,7 @@ export default function InvoiceMainView() {
                   return (
                     <RecipientChild
                       key={key}
-                      invoiceNumberAsString={convertToInvoiceNumberAsString(
+                      invoiceNumberAsString={Utils.convertToInvoiceNumberAsString(
                         initialInvoiceNumber,
                         key
                       )}
@@ -241,24 +201,10 @@ export default function InvoiceMainView() {
           + Add recipient
         </Button>
       </Container>
-      <Container className="center-children my-5">
-        <Button
-          variant="outline-primary"
-          size={"lg"}
-          className="mx-2"
-          onClick={handleGenerateAndDownloadInvoices}
-        >
-          Generate invoices
-        </Button>
-        <Button
-          variant="outline-success"
-          size={"lg"}
-          className="mx-2"
-          onClick={handleGenerateAndEmailInvoices}
-        >
-          Send all invoices
-        </Button>
-      </Container>
+      <GenerateOrEmailButtons
+        EmailInvoices={() => emailInvoices(createInvoices())}
+        DownloadInvoices={() => downloadInvoices(createInvoices())}
+      />
     </section>
   );
 }

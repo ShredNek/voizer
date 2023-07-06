@@ -1,7 +1,8 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import font from "./assets/misc/Urbanist.js";
-import { sendEmail } from "./utils.ts";
+import { sendEmail, getDateAfterOneWeek } from "./utils.ts";
+import { EmailEndpointParameter } from "../interfaces/emails.ts";
 import { InvoiceFields, InvoiceItemFields } from "../interfaces/invoices.ts";
 
 export type invoiceReturnMethod = "download" | "email";
@@ -294,14 +295,6 @@ export function generateInvoice(
   }
 }
 
-function getDateAfterOneWeek() {
-  const today = new Date();
-  const nextWeek = new Date(today);
-  nextWeek.setDate(today.getDate() + 7);
-  const formattedDate = nextWeek.toISOString().split("T")[0];
-  return formattedDate;
-}
-
 function generateInvoiceTotal(rowAmounts: number[]) {
   return rowAmounts
     .reduce((prev, curr) => {
@@ -335,6 +328,14 @@ function generateRowedItems(items: InvoiceItemFields[]) {
   return allRowedItems;
 }
 
+export function downloadInvoices(allInvoices: InvoiceFields[]) {
+  createAllInvoices(allInvoices, "download");
+}
+
+export function emailInvoices(allInvoices: InvoiceFields[]) {
+  createAllInvoices(allInvoices, "email");
+}
+
 export function createAllInvoices(
   allInvoices: InvoiceFields[],
   returnMethod: invoiceReturnMethod
@@ -344,7 +345,11 @@ export function createAllInvoices(
       generateInvoice(invoice, returnMethod);
     } else if (returnMethod === "email") {
       const encodedInvoice = generateInvoice(invoice, returnMethod) as string;
-      sendEmail(encodedInvoice, invoice);
+      const emailArgs = {
+        encodedInvoice,
+        invoiceDetails: invoice,
+      } as EmailEndpointParameter;
+      sendEmail(emailArgs);
     }
   });
 }

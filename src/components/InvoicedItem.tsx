@@ -8,7 +8,7 @@ import {
 } from "react-bootstrap";
 import { FaXmark } from "react-icons/fa6";
 import React, { useState, useEffect } from "react";
-import { handleIfQuantityOrRateIsNull } from "./utils";
+import { handleIfQuantityOrRateIsNull } from "../utils";
 
 interface InvoicedItemsInterface {
   bubbleUpTotalAmount: (amount: number) => void;

@@ -52,6 +52,7 @@ export default function InvoiceSenderDetails({
               rows={4}
               placeholder="i.e. ACC no. & BSB, delivery should take 1 week..."
               id="notes"
+              className="textarea-height short"
             ></Form.Control>
           </Form.Group>
         </Col>

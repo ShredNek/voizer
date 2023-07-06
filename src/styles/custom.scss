@@ -1,6 +1,6 @@
 @font-face {
   font-family: AmericanTypewriter;
-  src: url(./assets/fonts/Urbanist.ttf);
+  src: url(../assets/fonts/Urbanist.ttf);
 }
 
 // ? ? ?
@@ -34,11 +34,21 @@ $subtle-border: 5px;
   border-radius: $subtle-border;
 }
 
-#invoice-sender-details {
-  #notes {
+.textarea-height {
+  &.tall {
+    max-height: 400px;
+
+  }
+
+  &.short {
     max-height: 200px;
   }
 }
+
+.grey-text {
+  color: darken($color-1, 25%)
+}
+
 
 // ? ? ?
 // ? DYNAMICALLY GENERATED RECIPIENTS
