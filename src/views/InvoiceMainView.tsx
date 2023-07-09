@@ -5,11 +5,10 @@ import RecipientChild from "../components/RecipientChild";
 import InvoiceSenderDetails from "../components/InvoiceSenderDetails";
 import GenerateOrEmailButtons from "../components/GenerateOrEmailButtons";
 import {
-  InvoiceFields,
-  InvoiceItemFields,
-  PersonalDetails,
-} from "../../interfaces/invoices";
-import { downloadInvoices, emailInvoices } from "../invoiceGenerationLogic";
+  downloadInvoices,
+  emailInvoices,
+  createInvoiceJsonFromUserInput,
+} from "../invoiceGenerationLogic";
 
 export default function InvoiceMainView() {
   const [allRecipientChildKeys, setAllRecipientChildKeys] = useState<number[]>(
@@ -46,115 +45,11 @@ export default function InvoiceMainView() {
     );
   }
 
-  // TODO: shorten this overblown function
   function createInvoices() {
-    const whatWeWorkingWith =
-      recipientParentRef.current?.getElementsByClassName(
-        "reactive-recipient-children"
-      );
-
-    let allCreatedInvoices: InvoiceFields[] = [];
-
-    const invoiceSenderInputs =
-      invoiceSenderDetailsRef.current?.getElementsByTagName("input");
-
-    let invoiceSenderDetails = {} as PersonalDetails;
-    let invoiceSenderNotes = "";
-
-    const invoiceSenderTextareas =
-      invoiceSenderDetailsRef.current?.getElementsByTagName("textarea");
-
-    if (invoiceSenderTextareas) {
-      const other = [...invoiceSenderTextareas];
-      other.forEach((e) => {
-        switch (e.id) {
-          case "notes":
-            invoiceSenderNotes = e.value;
-            break;
-        }
-      });
-    }
-
-    if (invoiceSenderInputs) {
-      const fuJs = [...invoiceSenderInputs];
-      fuJs.forEach((e) => {
-        switch (e.id) {
-          case "name":
-            invoiceSenderDetails.name = e.value;
-            break;
-          case "email":
-            invoiceSenderDetails.email = e.value;
-            break;
-          case "number":
-            invoiceSenderDetails.number = e.value;
-            break;
-          case "business-number":
-            invoiceSenderDetails.businessNumber = e.value;
-            break;
-        }
-      });
-    }
-
-    if (whatWeWorkingWith) {
-      const allRecipients = [...whatWeWorkingWith];
-      allRecipients.forEach((e) => {
-        let recipientObject = {} as InvoiceFields;
-
-        // ? the id of the child is it's invoice number
-        recipientObject.invoiceNumber = e.id;
-        recipientObject.notes = invoiceSenderNotes;
-        recipientObject.from = invoiceSenderDetails;
-        recipientObject.to = {} as PersonalDetails;
-        recipientObject.items = [];
-
-        // ? This confusing use of the spread syntax is to immediately convert
-        // ? from an html collection to an array
-        const allInputElems = [...e.getElementsByTagName("input")];
-        // ? and this is to find each by their id and sort them into the object
-        allInputElems.forEach((e) => {
-          switch (e.id) {
-            case "name":
-              recipientObject.to.name = e.value;
-              break;
-            case "email":
-              recipientObject.to.email = e.value;
-              break;
-          }
-          // TODO TAKE THE REST OF THE DATA FORM THE CHILD
-        });
-
-        const allItemRowsElems = [
-          ...e.getElementsByClassName("invoiced-items-rows"),
-        ];
-
-        // TODO - refactor this bulky code
-        allItemRowsElems.forEach((e) => {
-          const inputElemsOfItems = [...e.getElementsByTagName("input")];
-
-          let rowedItem = {} as InvoiceItemFields;
-          inputElemsOfItems.forEach((e) => {
-            switch (e.id) {
-              case "item-name":
-                rowedItem.itemName = e.value;
-                break;
-              case "quantity":
-                rowedItem.quantity = e.value;
-                break;
-              case "rate":
-                rowedItem.rate = e.value;
-                break;
-            }
-          });
-
-          recipientObject.items.push(rowedItem);
-        });
-
-        allCreatedInvoices.push(recipientObject);
-      });
-    }
-
-    console.log(allCreatedInvoices);
-    return allCreatedInvoices;
+    return createInvoiceJsonFromUserInput({
+      recipientParentRef,
+      invoiceSenderDetailsRef,
+    });
   }
 
   return (

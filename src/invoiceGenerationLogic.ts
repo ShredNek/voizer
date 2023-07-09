@@ -3,9 +3,124 @@ import autoTable from "jspdf-autotable";
 import font from "./assets/misc/Urbanist.js";
 import { sendEmail, getDateAfterOneWeek } from "./utils.ts";
 import { EmailEndpointParameter } from "../interfaces/emails.ts";
-import { InvoiceFields, InvoiceItemFields } from "../interfaces/invoices.ts";
+import {
+  InvoiceFields,
+  InvoiceItemFields,
+  PersonalDetails,
+} from "../interfaces/invoices.ts";
 
 export type invoiceReturnMethod = "download" | "email";
+
+interface CreateInvoiceJsonFromUserInput {
+  recipientParentRef: React.RefObject<HTMLDivElement>;
+  invoiceSenderDetailsRef: React.RefObject<HTMLDivElement>;
+}
+
+export function createInvoiceJsonFromUserInput({
+  recipientParentRef,
+  invoiceSenderDetailsRef,
+}: CreateInvoiceJsonFromUserInput) {
+  const reactiveRecipientChildren =
+    recipientParentRef.current?.getElementsByClassName(
+      "reactive-recipient-children"
+    );
+  const invoiceSenderInputs =
+    invoiceSenderDetailsRef.current?.getElementsByTagName("input");
+  const invoiceSenderTextareas =
+    invoiceSenderDetailsRef.current?.getElementsByTagName("textarea");
+  let allCreatedInvoices: InvoiceFields[] = [];
+  let invoiceSenderDetails = {} as PersonalDetails;
+  let invoiceSenderNotes = "";
+
+  // ? this quickly check that the ref is not null,
+  // ? then we search each item if and saves the data if it
+  // ? the value from the text area with the id of "notes"
+  if (invoiceSenderTextareas) {
+    [...invoiceSenderTextareas].forEach((e) => {
+      if (e.id === "notes") invoiceSenderNotes = e.value;
+    });
+  }
+
+  // ? saves all relevant information of invoice sender
+  if (invoiceSenderInputs) {
+    [...invoiceSenderInputs].forEach((e) => {
+      switch (e.id) {
+        case "name":
+          invoiceSenderDetails.name = e.value;
+          break;
+        case "email":
+          invoiceSenderDetails.email = e.value;
+          break;
+        case "number":
+          invoiceSenderDetails.number = e.value;
+          break;
+        case "business-number":
+          invoiceSenderDetails.businessNumber = e.value;
+          break;
+      }
+    });
+  }
+
+  if (reactiveRecipientChildren) {
+    [...reactiveRecipientChildren].forEach((e) => {
+      let recipientObject = {} as InvoiceFields;
+
+      // ? the id of the child is it's invoice number
+      recipientObject.invoiceNumber = e.id;
+      recipientObject.notes = invoiceSenderNotes;
+      recipientObject.from = invoiceSenderDetails;
+      recipientObject.to = {} as PersonalDetails;
+      recipientObject.items = [];
+
+      // ? This confusing use of the spread syntax is to immediately convert
+      // ? from an html collection to an array
+      const allInputElems = [...e.getElementsByTagName("input")];
+      // ? and this is to find each by their id and sort them into the object
+      allInputElems.forEach((e) => {
+        switch (e.id) {
+          case "name":
+            recipientObject.to.name = e.value;
+            break;
+          case "email":
+            recipientObject.to.email = e.value;
+            break;
+        }
+        // TODO TAKE THE REST OF THE DATA FORM THE CHILD
+      });
+
+      const allItemRowsElems = [
+        ...e.getElementsByClassName("invoiced-items-rows"),
+      ];
+
+      // TODO - refactor this bulky code
+      allItemRowsElems.forEach((e) => {
+        const inputElemsOfItems = [...e.getElementsByTagName("input")];
+
+        let rowedItem = {} as InvoiceItemFields;
+        inputElemsOfItems.forEach((e) => {
+          switch (e.id) {
+            case "item-name":
+              rowedItem.itemName = e.value;
+              break;
+            case "quantity":
+              rowedItem.quantity = e.value;
+              break;
+            case "rate":
+              rowedItem.rate = e.value;
+              break;
+          }
+        });
+
+        recipientObject.items.push(rowedItem);
+      });
+
+      allCreatedInvoices.push(recipientObject);
+    });
+  }
+
+  // console.log(allCreatedInvoices);
+  return allCreatedInvoices;
+}
 
 export function generateInvoice(
   invoiceData: InvoiceFields,
