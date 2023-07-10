@@ -8,6 +8,7 @@ import {
   downloadInvoices,
   emailInvoices,
   createInvoiceJsonFromUserInput,
+  downloadOrEmail,
 } from "../invoiceGenerationLogic";
 
 export default function InvoiceMainView() {
@@ -18,6 +19,9 @@ export default function InvoiceMainView() {
     Utils.InvoiceItemsAndKey[]
   >([]);
   const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("0001");
+  const [invoiceProcessMethod, setInvoiceProcessMethod] =
+    useState<downloadOrEmail>("download");
+  const [validated, setValidated] = useState(false);
   const recipientParentRef = useRef<HTMLDivElement>(null);
   const invoiceSenderDetailsRef = useRef<HTMLDivElement>(null);
 
@@ -45,11 +49,35 @@ export default function InvoiceMainView() {
     );
   }
 
-  function createInvoices() {
-    return createInvoiceJsonFromUserInput({
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    if (e.currentTarget.checkValidity() === false) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    setValidated(true);
+
+    const json = createInvoiceJsonFromUserInput({
       recipientParentRef,
       invoiceSenderDetailsRef,
     });
+
+    switch (invoiceProcessMethod) {
+      case "download":
+        downloadInvoices(json);
+        break;
+      case "email":
+        emailInvoices(json);
+        location.reload();
+        break;
+    }
+  }
+
+  function handleInvoiceNumberChange(newInvoiceNumber: string) {
+    setInitialInvoiceNumber(() => newInvoiceNumber);
   }
 
   return (
@@ -57,13 +85,11 @@ export default function InvoiceMainView() {
       <h2 className="my-4 text-center">Let's send some invoices!</h2>
 
       <Container>
-        <Form>
+        <Form noValidate onSubmit={handleSubmit} validated={validated}>
           <h4>Invoice sender's details:</h4>
           <div ref={invoiceSenderDetailsRef}>
             <InvoiceSenderDetails
-              bubbleUpInitialInvoiceNumber={(newInvoiceNumber) =>
-                setInitialInvoiceNumber(() => newInvoiceNumber)
-              }
+              bubbleUpInitialInvoiceNumber={handleInvoiceNumberChange}
             />
           </div>
           <div className="divider" />
@@ -73,7 +99,7 @@ export default function InvoiceMainView() {
           <div id="all-recipients" ref={recipientParentRef}>
             <RecipientChild
               key={1}
-              invoiceNumberAsString={initialInvoiceNumber}
+              invoiceNumberAsString={Utils.prependZeroes(initialInvoiceNumber)}
               firstChild={true}
             />
             {allRecipientChildKeys
@@ -91,15 +117,15 @@ export default function InvoiceMainView() {
                 })
               : null}
           </div>
+          <Button variant="success" onClick={handleAddRecipientChild}>
+            + Add recipient
+          </Button>
+          <GenerateOrEmailButtons
+            DownloadInvoices={() => setInvoiceProcessMethod("download")}
+            EmailInvoices={() => setInvoiceProcessMethod("email")}
+          />
         </Form>
-        <Button variant="success" onClick={handleAddRecipientChild}>
-          + Add recipient
-        </Button>
       </Container>
-      <GenerateOrEmailButtons
-        EmailInvoices={() => emailInvoices(createInvoices())}
-        DownloadInvoices={() => downloadInvoices(createInvoices())}
-      />
     </section>
   );
 }

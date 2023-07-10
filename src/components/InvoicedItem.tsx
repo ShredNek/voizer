@@ -23,7 +23,7 @@ export default function InvoicedItem({
   firstChild,
   id,
 }: InvoicedItemsInterface) {
-  const [quantity, setQuantity] = useState<string>("1");
+  const [quantity, setQuantity] = useState<string>("");
   const [rate, setRate] = useState<string>("");
   const [total, setTotal] = useState(0);
 
@@ -57,6 +57,7 @@ export default function InvoicedItem({
             )}
             <FloatingLabel label="Item">
               <Form.Control
+                required
                 type="name"
                 placeholder="First item"
                 id="item-name"
@@ -65,9 +66,11 @@ export default function InvoicedItem({
           </InputGroup>
         </Col>
         <Col md={{ span: 2 }}>
-          <FloatingLabel label="Quantity">
+          <FloatingLabel label="Qnt.">
             <Form.Control
+              required
               type="number"
+              min={1}
               placeholder="0"
               value={quantity}
               onChange={handleOnQuantityChange}
@@ -78,8 +81,10 @@ export default function InvoicedItem({
         <Col md={{ span: 2 }}>
           <FloatingLabel label="Rate">
             <Form.Control
+              required
               type="number"
-              placeholder="0"
+              min={1}
+              placeholder="1"
               value={rate}
               onChange={handleOnRateChange}
               id="rate"

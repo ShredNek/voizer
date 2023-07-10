@@ -13,6 +13,7 @@ export default function GenerateOrEmailButtons({
     <>
       <Container className="center-children my-5">
         <Button
+          type="submit"
           variant="outline-primary"
           size={"lg"}
           className="mx-2"
@@ -21,6 +22,7 @@ export default function GenerateOrEmailButtons({
           Generate invoices
         </Button>
         <Button
+          type="submit"
           variant="outline-success"
           size={"lg"}
           className="mx-2"

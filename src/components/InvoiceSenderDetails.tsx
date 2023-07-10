@@ -1,4 +1,4 @@
-import { Form, Row, Col, InputGroup } from "react-bootstrap";
+import { Form, Row, Col, InputGroup, FloatingLabel } from "react-bootstrap";
 interface InvoiceSenderDetails {
   bubbleUpInitialInvoiceNumber: (str: string) => void;
 }
@@ -14,32 +14,58 @@ export default function InvoiceSenderDetails({
       <Row>
         <Col>
           <Form.Group>
-            <Form.Label className="my-2">Full Name</Form.Label>
-            <Form.Control type="name" id="name" />
+            <FloatingLabel className="my-2" label="Full Name">
+              <Form.Control
+                required
+                type="name"
+                id="name"
+                placeholder="Full Name"
+              />
+              <Form.Control.Feedback>Looks good!</Form.Control.Feedback>
+              <Form.Control.Feedback type="invalid">
+                Please enter your name
+              </Form.Control.Feedback>
+            </FloatingLabel>
           </Form.Group>
         </Col>
         <Col>
           <Form.Group>
-            <Form.Label className="my-2">Email</Form.Label>
-            <Form.Control type="email" id="email" />
+            <FloatingLabel className="my-2" label="Email">
+              <Form.Control
+                required
+                type="email"
+                id="email"
+                placeholder="Email"
+              />
+              <Form.Control.Feedback>Looks good!</Form.Control.Feedback>
+              <Form.Control.Feedback type="invalid">
+                Please enter your email
+              </Form.Control.Feedback>
+            </FloatingLabel>
           </Form.Group>
         </Col>
       </Row>
       <Row>
         <Col>
           <Form.Group>
-            <Form.Label className="my-2">Contact Number</Form.Label>
-            <Form.Control type="number" id="number" />
+            <FloatingLabel className="my-2" label="Contact Number">
+              <Form.Control
+                type="number"
+                id="number"
+                placeholder="Contact Number"
+              />
+            </FloatingLabel>
           </Form.Group>
         </Col>
         <Col>
           <Form.Group>
-            <Form.Label className="my-2">Business Number</Form.Label>
-            <Form.Control
-              type="number"
-              placeholder="i.e. If Australian, write your ABN"
-              id="business-number"
-            />
+            <FloatingLabel className="my-2" label="Business Number">
+              <Form.Control
+                type="number"
+                placeholder="i.e. If Australian, write your ABN"
+                id="business-number"
+              />
+            </FloatingLabel>
           </Form.Group>
         </Col>
       </Row>
@@ -63,11 +89,16 @@ export default function InvoiceSenderDetails({
           <InputGroup>
             <InputGroup.Text>INV#</InputGroup.Text>
             <Form.Control
+              required
               type="number"
               placeholder="0001"
               defaultValue={"0001"}
               onChange={handleChange}
+              min={1}
             ></Form.Control>
+            <Form.Control.Feedback type="invalid">
+              Please enter a positive number
+            </Form.Control.Feedback>
           </InputGroup>
         </Col>
       </Row>

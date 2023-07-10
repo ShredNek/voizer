@@ -94,22 +94,36 @@ export default function RecipientChild({
         <Row className="g-2">
           <Col>
             <FloatingLabel label="Full name">
-              <Form.Control type="name" placeholder="John Smith" id="name" />
+              <Form.Control
+                required
+                type="name"
+                placeholder="John Smith"
+                id="name"
+              />
+              <Form.Control.Feedback type="invalid">
+                Please enter the recipient's full name
+              </Form.Control.Feedback>
+              <Form.Control.Feedback>Looks good!</Form.Control.Feedback>
             </FloatingLabel>
           </Col>
           <Col>
             <FloatingLabel label="Email">
               <Form.Control
+                required
                 type="email"
                 placeholder="example@test.com"
                 id="email"
               />
+              <Form.Control.Feedback type="invalid">
+                Please enter the recipient's email
+              </Form.Control.Feedback>
+              <Form.Control.Feedback>Looks good!</Form.Control.Feedback>
             </FloatingLabel>
           </Col>
         </Row>
         <Row className="g-2 my-1 mb-3">
           <Col md={{ span: 8 }}>
-            <FloatingLabel label="Address (optional)">
+            <FloatingLabel label="Address">
               <Form.Control
                 type="address"
                 placeholder="1 Test Avenue"
@@ -118,7 +132,7 @@ export default function RecipientChild({
             </FloatingLabel>
           </Col>
           <Col md={{ span: 4 }}>
-            <FloatingLabel label="Date (Optional)">
+            <FloatingLabel label="Receipt Date">
               <Form.Control
                 type="string"
                 placeholder={getTodaysDate()}

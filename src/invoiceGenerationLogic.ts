@@ -122,6 +122,40 @@ export function createInvoiceJsonFromUserInput({
   return allCreatedInvoices;
 }
 
+export function resetFormDataToNull({
+  recipientParentRef,
+  invoiceSenderDetailsRef,
+}: CreateInvoiceJsonFromUserInput) {
+  const reactiveRecipientChildren =
+    recipientParentRef.current?.getElementsByClassName(
+      "reactive-recipient-children"
+    );
+  const invoiceSenderInputs =
+    invoiceSenderDetailsRef.current?.getElementsByTagName("input");
+  const invoiceSenderTextareas =
+    invoiceSenderDetailsRef.current?.getElementsByTagName("textarea");
+
+  wipeData(invoiceSenderInputs);
+  wipeData(invoiceSenderTextareas);
+
+  if (reactiveRecipientChildren)
+    [...reactiveRecipientChildren].forEach((e) => {
+      [...e.getElementsByTagName("input")].forEach((e) => {
+        e.value = "";
+      });
+    });
+}
+
+function wipeData(
+  array: HTMLCollectionOf<HTMLInputElement | HTMLTextAreaElement> | undefined
+) {
+  if (array) {
+    [...array].forEach((i) => {
+      i.value = "";
+    });
+  }
+}
+
 export function generateInvoice(
   invoiceData: InvoiceFields,
   returnMethod: invoiceReturnMethod
@@ -410,6 +444,8 @@ export function generateInvoice(
   }
 }
 
+export type downloadOrEmail = "download" | "email";
+
 function generateInvoiceTotal(rowAmounts: number[]) {
   return rowAmounts
     .reduce((prev, curr) => {
@@ -443,12 +479,12 @@ function generateRowedItems(items: InvoiceItemFields[]) {
   return allRowedItems;
 }
 
-export function downloadInvoices(allInvoices: InvoiceFields[]) {
-  createAllInvoices(allInvoices, "download");
+export function downloadInvoices(allInvoices: InvoiceFields[] | undefined) {
+  allInvoices ? createAllInvoices(allInvoices, "download") : null;
 }
 
-export function emailInvoices(allInvoices: InvoiceFields[]) {
-  createAllInvoices(allInvoices, "email");
+export function emailInvoices(allInvoices: InvoiceFields[] | undefined) {
+  allInvoices ? createAllInvoices(allInvoices, "email") : null;
 }
 
 export function createAllInvoices(

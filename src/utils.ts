@@ -128,6 +128,26 @@ export function convertToInvoiceNumberAsString(
   return ans;
 }
 
+export function prependZeroes(initialInvoiceNumber: string) {
+  const defaultLengthOfInvoiceNumbers = 4;
+
+  if (initialInvoiceNumber.length >= defaultLengthOfInvoiceNumbers) {
+    return initialInvoiceNumber;
+  }
+
+  let difference: number =
+    defaultLengthOfInvoiceNumbers - initialInvoiceNumber.length;
+  let tempZeros = [];
+
+  while (difference > 0) {
+    tempZeros.push("0");
+    difference--;
+  }
+
+  const ans = tempZeros.join("").concat(initialInvoiceNumber);
+  return ans;
+}
+
 export function checkIfStringIsOnlyWhitespace(string: string) {
   const whitespaceRegex = new RegExp("^s*$");
   return whitespaceRegex.test(string);
