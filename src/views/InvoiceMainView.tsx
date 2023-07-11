@@ -1,15 +1,17 @@
 import { Form, Container, Button } from "react-bootstrap";
-import * as Utils from "../utils";
 import { useState, useRef } from "react";
-import RecipientChild from "../components/RecipientChild";
-import InvoiceSenderDetails from "../components/InvoiceSenderDetails";
-import GenerateOrEmailButtons from "../components/GenerateOrEmailButtons";
+
+import * as Utils from "../logic/utils";
 import {
   downloadInvoices,
   emailInvoices,
-  createInvoiceJsonFromUserInput,
-  downloadOrEmail,
-} from "../invoiceGenerationLogic";
+  createInvoiceJsonFromManualInput,
+} from "../logic/invoiceGenerationLogic";
+import { invoiceReturnMethod } from "../../interfaces/invoices";
+
+import RecipientChild from "../components/RecipientChild";
+import InvoiceSenderDetails from "../components/InvoiceSenderDetails";
+import GenerateOrEmailButtons from "../components/GenerateOrEmailButtons";
 
 export default function InvoiceMainView() {
   const [allRecipientChildKeys, setAllRecipientChildKeys] = useState<number[]>(
@@ -19,11 +21,11 @@ export default function InvoiceMainView() {
     Utils.InvoiceItemsAndKey[]
   >([]);
   const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("0001");
-  const [invoiceProcessMethod, setInvoiceProcessMethod] =
-    useState<downloadOrEmail>("download");
   const [validated, setValidated] = useState(false);
   const recipientParentRef = useRef<HTMLDivElement>(null);
   const invoiceSenderDetailsRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const invoiceProcessMethod = useRef<invoiceReturnMethod>("download");
 
   function handleAddRecipientChild() {
     if (allRecipientChildKeys.length !== 0) {
@@ -53,25 +55,23 @@ export default function InvoiceMainView() {
     e.preventDefault();
 
     if (e.currentTarget.checkValidity() === false) {
-      e.preventDefault();
       e.stopPropagation();
+      setValidated(true);
       return;
     }
+    setValidated(false);
 
-    setValidated(true);
-
-    const json = createInvoiceJsonFromUserInput({
+    const json = createInvoiceJsonFromManualInput({
       recipientParentRef,
       invoiceSenderDetailsRef,
     });
 
-    switch (invoiceProcessMethod) {
+    switch (invoiceProcessMethod.current) {
       case "download":
         downloadInvoices(json);
         break;
       case "email":
         emailInvoices(json);
-        location.reload();
         break;
     }
   }
@@ -81,11 +81,16 @@ export default function InvoiceMainView() {
   }
 
   return (
-    <section id="invoice-main-view">
+    <section>
       <h2 className="my-4 text-center">Let's send some invoices!</h2>
 
       <Container>
-        <Form noValidate onSubmit={handleSubmit} validated={validated}>
+        <Form
+          noValidate
+          onSubmit={handleSubmit}
+          validated={validated}
+          ref={formRef}
+        >
           <h4>Invoice sender's details:</h4>
           <div ref={invoiceSenderDetailsRef}>
             <InvoiceSenderDetails
@@ -121,8 +126,9 @@ export default function InvoiceMainView() {
             + Add recipient
           </Button>
           <GenerateOrEmailButtons
-            DownloadInvoices={() => setInvoiceProcessMethod("download")}
-            EmailInvoices={() => setInvoiceProcessMethod("email")}
+            formRef={formRef}
+            DownloadInvoices={() => (invoiceProcessMethod.current = "download")}
+            EmailInvoices={() => (invoiceProcessMethod.current = "email")}
           />
         </Form>
       </Container>

@@ -18,3 +18,18 @@ export interface PersonalDetails {
   number?: string;
   businessNumber?: string;
 }
+
+export interface Client {
+  name: string;
+  email: string;
+  items: InvoiceItemFields[];
+}
+
+export interface UserInput {
+  baseNumber: string;
+  senderDetails: PersonalDetails;
+  students: Client[];
+  notes: string;
+}
+
+export type invoiceReturnMethod = "download" | "email";

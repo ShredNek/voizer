@@ -8,7 +8,7 @@ import {
 } from "react-bootstrap";
 import { FaXmark } from "react-icons/fa6";
 import React, { useState, useEffect } from "react";
-import { handleIfQuantityOrRateIsNull } from "../utils";
+import { handleIfQuantityOrRateIsNull } from "../logic/utils";
 
 interface InvoicedItemsInterface {
   bubbleUpTotalAmount: (amount: number) => void;
@@ -65,7 +65,7 @@ export default function InvoicedItem({
             </FloatingLabel>
           </InputGroup>
         </Col>
-        <Col md={{ span: 2 }}>
+        <Col md={{ span: 2 }} xs={{ span: 6 }}>
           <FloatingLabel label="Qnt.">
             <Form.Control
               required
@@ -78,11 +78,11 @@ export default function InvoicedItem({
             />
           </FloatingLabel>
         </Col>
-        <Col md={{ span: 2 }}>
+        <Col md={{ span: 2 }} xs={{ span: 6 }}>
           <FloatingLabel label="Rate">
             <Form.Control
               required
-              type="number"
+              type="float"
               min={1}
               placeholder="1"
               value={rate}

@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
-import { InvoiceFields, InvoiceItemFields } from "../interfaces/invoices.ts";
-import { EmailEndpointParameter } from "../interfaces/emails.ts";
+import { InvoiceItemFields } from "../../interfaces/invoices.ts";
+import { EmailEndpointParameter } from "../../interfaces/emails.ts";
 import axios from "axios";
 
 export type numbsThatArePotentiallyNull = number | null;
@@ -184,6 +184,12 @@ export async function sendEmail(userArguments: EmailEndpointParameter) {
           " didn't get their invoice"
       )
     );
+}
+
+export function hasDuplicateStrings(strings: string[]): boolean {
+  const uniqueStrings = new Set(strings);
+
+  return uniqueStrings.size !== strings.length;
 }
 
 export default {};

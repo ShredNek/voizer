@@ -1,21 +1,30 @@
-// * CODE SOURCE: APP.QUICKTYPE.IO
-
 // To parse this data:
 //
-//   import { Convert } from "./file";
+//   import { Convert, UserInput } from "./file";
 //
-//   const invoices = Convert.toInvoices(json);
+//   const userInput = Convert.toUserInput(json);
 //
 // These functions will throw an error if the JSON doesn't
 // match the expected interface, even if the JSON is valid.
 
-import { InvoiceFields } from "../interfaces/invoices";
+export interface UserInput {
+  baseNumber: string;
+  senderDetails: SenderDetails;
+  students: Student[];
+  notes: string;
+}
 
-export interface From {
+export interface SenderDetails {
   name: string;
   email: string;
   number: string;
   businessNumber: string;
+}
+
+export interface Student {
+  name: string;
+  email: string;
+  items: Item[];
 }
 
 export interface Item {
@@ -24,20 +33,15 @@ export interface Item {
   rate: string;
 }
 
-export interface To {
-  name: string;
-  email: string;
-}
-
 // Converts JSON strings to/from your types
 // and asserts the results of JSON.parse at runtime
 export class Convert {
-  public static toInvoices(json: string): InvoiceFields[] {
-    return cast(JSON.parse(json), a(r("Invoices")));
+  public static toUserInput(json: string): UserInput {
+    return cast(JSON.parse(json), r("UserInput"));
   }
 
-  public static invoicesToJson(value: InvoiceFields[]): string {
-    return JSON.stringify(uncast(value, a(r("Invoices"))), null, 2);
+  public static userInputToJson(value: UserInput): string {
+    return JSON.stringify(uncast(value, r("UserInput")), null, 2);
   }
 }
 
@@ -224,17 +228,16 @@ function r(name: string) {
 }
 
 const typeMap: any = {
-  Invoices: o(
+  UserInput: o(
     [
-      { json: "invoiceNumber", js: "invoiceNumber", typ: "" },
+      { json: "baseNumber", js: "baseNumber", typ: "" },
+      { json: "senderDetails", js: "senderDetails", typ: r("SenderDetails") },
+      { json: "students", js: "students", typ: a(r("Student")) },
       { json: "notes", js: "notes", typ: "" },
-      { json: "from", js: "from", typ: r("From") },
-      { json: "to", js: "to", typ: r("To") },
-      { json: "items", js: "items", typ: a(r("Item")) },
     ],
     false
   ),
-  From: o(
+  SenderDetails: o(
     [
       { json: "name", js: "name", typ: "" },
       { json: "email", js: "email", typ: "" },
@@ -243,18 +246,19 @@ const typeMap: any = {
     ],
     false
   ),
+  Student: o(
+    [
+      { json: "name", js: "name", typ: "" },
+      { json: "email", js: "email", typ: "" },
+      { json: "items", js: "items", typ: a(r("Item")) },
+    ],
+    false
+  ),
   Item: o(
     [
       { json: "itemName", js: "itemName", typ: "" },
       { json: "quantity", js: "quantity", typ: "" },
       { json: "rate", js: "rate", typ: "" },
-    ],
-    false
-  ),
-  To: o(
-    [
-      { json: "name", js: "name", typ: "" },
-      { json: "email", js: "email", typ: "" },
     ],
     false
   ),

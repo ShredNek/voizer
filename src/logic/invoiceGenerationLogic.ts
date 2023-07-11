@@ -1,25 +1,69 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import font from "./assets/misc/Urbanist.js";
-import { sendEmail, getDateAfterOneWeek } from "./utils.ts";
-import { EmailEndpointParameter } from "../interfaces/emails.ts";
+import font from "../assets/misc/Urbanist.js";
+import {
+  sendEmail,
+  getDateAfterOneWeek,
+  convertToInvoiceNumberAsString,
+  hasDuplicateStrings,
+} from "./utils.ts";
+import { EmailEndpointParameter } from "../../interfaces/emails.ts";
 import {
   InvoiceFields,
   InvoiceItemFields,
   PersonalDetails,
-} from "../interfaces/invoices.ts";
+  invoiceReturnMethod,
+  UserInput,
+} from "../../interfaces/invoices.ts";
 
-export type invoiceReturnMethod = "download" | "email";
+// ? INTERNAL INTERFACES ?
 
-interface CreateInvoiceJsonFromUserInput {
+interface ElemRefsFromManualInput {
   recipientParentRef: React.RefObject<HTMLDivElement>;
   invoiceSenderDetailsRef: React.RefObject<HTMLDivElement>;
 }
 
-export function createInvoiceJsonFromUserInput({
+// ? EXPORTED FUNCTIONS ?
+
+export const jsonPlaceholder = {
+  baseNumber: "1998",
+  senderDetails: {
+    name: "Daniel",
+    email: "daniel@test.com",
+    number: "123456789",
+    businessNumber: "ABN: 123456789",
+  },
+  students: [
+    {
+      name: "Jane Doe",
+      email: "janedoe@test.com",
+      items: [
+        {
+          itemName: "Music Lesson - 30 mins",
+          quantity: "1",
+          rate: "30",
+        },
+      ],
+    },
+    {
+      name: "John Smith",
+      email: "johnsmith@test.com",
+      items: [
+        {
+          itemName: "Music Lesson - 1 hour",
+          quantity: "1",
+          rate: "60",
+        },
+      ],
+    },
+  ],
+  notes: "Payment VIA direct deposit \nBSB: 12456\nACC: 123456789",
+};
+
+export function createInvoiceJsonFromManualInput({
   recipientParentRef,
   invoiceSenderDetailsRef,
-}: CreateInvoiceJsonFromUserInput) {
+}: ElemRefsFromManualInput) {
   const reactiveRecipientChildren =
     recipientParentRef.current?.getElementsByClassName(
       "reactive-recipient-children"
@@ -122,41 +166,40 @@ export function createInvoiceJsonFromUserInput({
   return allCreatedInvoices;
 }
 
-export function resetFormDataToNull({
-  recipientParentRef,
-  invoiceSenderDetailsRef,
-}: CreateInvoiceJsonFromUserInput) {
-  const reactiveRecipientChildren =
-    recipientParentRef.current?.getElementsByClassName(
-      "reactive-recipient-children"
-    );
-  const invoiceSenderInputs =
-    invoiceSenderDetailsRef.current?.getElementsByTagName("input");
-  const invoiceSenderTextareas =
-    invoiceSenderDetailsRef.current?.getElementsByTagName("textarea");
+export function generateInvoiceJsonFromJsonInput(
+  userInput: UserInput
+): InvoiceFields[] | void {
+  let finalJson: InvoiceFields[] = [];
+  // ? to check that not one email is being spammed;
+  let allEmails: string[] = [];
 
-  wipeData(invoiceSenderInputs);
-  wipeData(invoiceSenderTextareas);
+  userInput.students.forEach((student, iteration) => {
+    allEmails.push(student.email);
+    let jsonItem = {
+      invoiceNumber: convertToInvoiceNumberAsString(
+        userInput.baseNumber,
+        // ? I decreased the iteration by 1 to
+        // ? include the first invoice in the array
+        iteration - 1
+      ),
+      notes: userInput.notes,
+      from: userInput.senderDetails,
+      to: { name: student.name, email: student.email },
+      items: student.items,
+    } as InvoiceFields;
 
-  if (reactiveRecipientChildren)
-    [...reactiveRecipientChildren].forEach((e) => {
-      [...e.getElementsByTagName("input")].forEach((e) => {
-        e.value = "";
-      });
-    });
+    finalJson.push(jsonItem);
+  });
+
+  const antiSpamWarningMsg =
+    "We've detected multiple instances of the same email in your students array. Please don't do that, and remove any duplicate emails to prevent your customers from getting spammed.";
+
+  return !hasDuplicateStrings(allEmails)
+    ? finalJson
+    : (console.error(antiSpamWarningMsg), window.alert(antiSpamWarningMsg));
 }
 
-function wipeData(
-  array: HTMLCollectionOf<HTMLInputElement | HTMLTextAreaElement> | undefined
-) {
-  if (array) {
-    [...array].forEach((i) => {
-      i.value = "";
-    });
-  }
-}
-
-export function generateInvoice(
+export function generateInvoicePdf(
   invoiceData: InvoiceFields,
   returnMethod: invoiceReturnMethod
 ) {
@@ -444,7 +487,36 @@ export function generateInvoice(
   }
 }
 
-export type downloadOrEmail = "download" | "email";
+export function downloadInvoices(allInvoices: InvoiceFields[] | undefined) {
+  allInvoices ? handleAllInvoices(allInvoices, "download") : null;
+}
+
+export function emailInvoices(allInvoices: InvoiceFields[] | undefined) {
+  allInvoices ? handleAllInvoices(allInvoices, "email") : null;
+}
+
+export function handleAllInvoices(
+  allInvoices: InvoiceFields[],
+  returnMethod: invoiceReturnMethod
+) {
+  allInvoices.forEach((invoice) => {
+    if (returnMethod === "download") {
+      generateInvoicePdf(invoice, returnMethod);
+    } else if (returnMethod === "email") {
+      const encodedInvoice = generateInvoicePdf(
+        invoice,
+        returnMethod
+      ) as string;
+      const emailArgs = {
+        encodedInvoice,
+        invoiceDetails: invoice,
+      } as EmailEndpointParameter;
+      sendEmail(emailArgs);
+    }
+  });
+}
+
+// ? INTERNAL FUNCTIONS ?
 
 function generateInvoiceTotal(rowAmounts: number[]) {
   return rowAmounts
@@ -477,30 +549,4 @@ function generateRowedItems(items: InvoiceItemFields[]) {
   });
 
   return allRowedItems;
-}
-
-export function downloadInvoices(allInvoices: InvoiceFields[] | undefined) {
-  allInvoices ? createAllInvoices(allInvoices, "download") : null;
-}
-
-export function emailInvoices(allInvoices: InvoiceFields[] | undefined) {
-  allInvoices ? createAllInvoices(allInvoices, "email") : null;
-}
-
-export function createAllInvoices(
-  allInvoices: InvoiceFields[],
-  returnMethod: invoiceReturnMethod
-) {
-  allInvoices.forEach((invoice) => {
-    if (returnMethod === "download") {
-      generateInvoice(invoice, returnMethod);
-    } else if (returnMethod === "email") {
-      const encodedInvoice = generateInvoice(invoice, returnMethod) as string;
-      const emailArgs = {
-        encodedInvoice,
-        invoiceDetails: invoice,
-      } as EmailEndpointParameter;
-      sendEmail(emailArgs);
-    }
-  });
 }

@@ -21,11 +21,7 @@ $subtle-border: 5px;
   margin: 0;
 }
 
-// ? ? ?
-// ? MAIN VIEW
-// ? ? ?
-
-#invoice-main-view {
+section {
   margin: 2rem auto;
   padding: 0 1rem 2rem;
   min-height: 80vh;
@@ -34,10 +30,16 @@ $subtle-border: 5px;
   border-radius: $subtle-border;
 }
 
-.textarea-height {
-  &.tall {
-    max-height: 400px;
+// ? ? ?
+// ? MAIN VIEW
+// ? ? ?
 
+.textarea-height {
+  min-height: 100px;
+  
+  &.tall {
+    max-height: 600px;
+    min-height: 300px;
   }
 
   &.short {
@@ -46,7 +48,30 @@ $subtle-border: 5px;
 }
 
 .grey-text {
-  color: darken($color-1, 25%)
+  color: darken($color-1, 25%);
+}
+
+.red-text {
+  color: darken(red, 25%);
+}
+
+// ? ? ?
+// ? TERMS VIEW
+// ? ? ?
+
+.heading {
+  text-align: center;
+  padding: .5em;
+}
+
+// ? ? ?
+// ? FOOTER
+// ? ? ?
+
+#footer {
+  text-align: center;
+  width: 80%;
+  margin: 0px auto;
 }
 
 
@@ -108,6 +133,12 @@ $subtle-border: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.space-around-children {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
 }
 
 // ? import bootstrap stylesheet

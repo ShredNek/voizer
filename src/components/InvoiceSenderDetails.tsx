@@ -12,7 +12,7 @@ export default function InvoiceSenderDetails({
   return (
     <div id="invoice-sender-details">
       <Row>
-        <Col>
+        <Col md={{ span: 6 }} xs={{ span: 12 }}>
           <Form.Group>
             <FloatingLabel className="my-2" label="Full Name">
               <Form.Control
@@ -28,7 +28,7 @@ export default function InvoiceSenderDetails({
             </FloatingLabel>
           </Form.Group>
         </Col>
-        <Col>
+        <Col md={{ span: 6 }} xs={{ span: 12 }}>
           <Form.Group>
             <FloatingLabel className="my-2" label="Email">
               <Form.Control
@@ -46,7 +46,7 @@ export default function InvoiceSenderDetails({
         </Col>
       </Row>
       <Row>
-        <Col>
+        <Col md={{ span: 6 }} xs={{ span: 12 }}>
           <Form.Group>
             <FloatingLabel className="my-2" label="Contact Number">
               <Form.Control
@@ -57,7 +57,7 @@ export default function InvoiceSenderDetails({
             </FloatingLabel>
           </Form.Group>
         </Col>
-        <Col>
+        <Col md={{ span: 6 }} xs={{ span: 12 }}>
           <Form.Group>
             <FloatingLabel className="my-2" label="Business Number">
               <Form.Control

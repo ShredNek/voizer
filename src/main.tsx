@@ -7,6 +7,7 @@ import AppView from "./views/AppView";
 import ErrorPage from "./components/ErrorPage";
 import InvoiceMainView from "./views/InvoiceMainView";
 import JsonMainView from "./views/JsonMainView";
+import TermsView from "./views/TermsView";
 
 const router = createBrowserRouter([
   {
@@ -20,6 +21,10 @@ const router = createBrowserRouter([
       {
         path: "/json",
         element: <JsonMainView />,
+      },
+      {
+        path: "/terms",
+        element: <TermsView />,
       },
     ],
     errorElement: <ErrorPage />,

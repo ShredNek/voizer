@@ -15,6 +15,7 @@ dist-ssr
 
 dansStudents.json
 generateDansJson.ts
+OMIT.json
 
 # Editor directories and files
 .vscode/*

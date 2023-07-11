@@ -9,7 +9,7 @@ import {
   incrementId,
   deleteKeyAndCallbackSetState,
   getTodaysDate,
-} from "../utils";
+} from "../logic/utils";
 
 interface RecipientChild {
   invoiceNumberAsString: string;
@@ -92,7 +92,7 @@ export default function RecipientChild({
       </Row>
       <Form.Group>
         <Row className="g-2">
-          <Col>
+          <Col md={{ span: 6 }} xsm={{ span: 12 }}>
             <FloatingLabel label="Full name">
               <Form.Control
                 required
@@ -106,7 +106,7 @@ export default function RecipientChild({
               <Form.Control.Feedback>Looks good!</Form.Control.Feedback>
             </FloatingLabel>
           </Col>
-          <Col>
+          <Col md={{ span: 6 }} xsm={{ span: 12 }}>
             <FloatingLabel label="Email">
               <Form.Control
                 required
@@ -122,7 +122,7 @@ export default function RecipientChild({
           </Col>
         </Row>
         <Row className="g-2 my-1 mb-3">
-          <Col md={{ span: 8 }}>
+          <Col>
             <FloatingLabel label="Address">
               <Form.Control
                 type="address"
@@ -131,7 +131,8 @@ export default function RecipientChild({
               />
             </FloatingLabel>
           </Col>
-          <Col md={{ span: 4 }}>
+          {/* // TODO - ADD THIS FEATURE LATER */}
+          {/* <Col md={{ span: 4 }}>
             <FloatingLabel label="Receipt Date">
               <Form.Control
                 type="string"
@@ -139,7 +140,7 @@ export default function RecipientChild({
                 id="date"
               />
             </FloatingLabel>
-          </Col>
+          </Col> */}
         </Row>
         <div className="divider white" />
         <h4 className="m-1">Invoiced items</h4>
@@ -171,11 +172,16 @@ export default function RecipientChild({
           <Row className="g-2 my-1 mb-3">
             <Col
               md={{ span: 2, offset: 8 }}
+              xs={{ span: 3 }}
               className="recipient-default-value"
             >
               <Form.Control value="TOTAL:" plaintext readOnly />
             </Col>
-            <Col md={{ span: 2 }} className="recipient-default-value">
+            <Col
+              md={{ span: 2 }}
+              xs={{ span: 3 }}
+              className="recipient-default-value"
+            >
               <Form.Control
                 value={`$${totalInvoiceAmount.toFixed(2)}`}
                 plaintext
