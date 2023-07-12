@@ -68,10 +68,13 @@ export default function InvoiceMainView() {
 
     switch (invoiceProcessMethod.current) {
       case "download":
-        downloadInvoices(json);
+        if (json) downloadInvoices(json);
         break;
       case "email":
-        emailInvoices(json);
+        if (json) {
+          emailInvoices(json);
+          location.reload();
+        }
         break;
     }
   }

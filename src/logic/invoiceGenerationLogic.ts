@@ -14,6 +14,7 @@ import {
   PersonalDetails,
   invoiceReturnMethod,
   UserInput,
+  Client,
 } from "../../interfaces/invoices.ts";
 
 // ? INTERNAL INTERFACES ?
@@ -136,7 +137,6 @@ export function createInvoiceJsonFromManualInput({
         ...e.getElementsByClassName("invoiced-items-rows"),
       ];
 
-      // TODO - refactor this bulky code
       allItemRowsElems.forEach((e) => {
         const inputElemsOfItems = [...e.getElementsByTagName("input")];
 
@@ -162,19 +162,17 @@ export function createInvoiceJsonFromManualInput({
     });
   }
 
-  // console.log(allCreatedInvoices);
-  return allCreatedInvoices;
+  const allEmails = allCreatedInvoices.map((inv) => inv.to.email);
+
+  return handleSpamWarning(!hasDuplicateStrings(allEmails), allCreatedInvoices);
 }
 
 export function generateInvoiceJsonFromJsonInput(
   userInput: UserInput
 ): InvoiceFields[] | void {
   let finalJson: InvoiceFields[] = [];
-  // ? to check that not one email is being spammed;
-  let allEmails: string[] = [];
 
   userInput.students.forEach((student, iteration) => {
-    allEmails.push(student.email);
     let jsonItem = {
       invoiceNumber: convertToInvoiceNumberAsString(
         userInput.baseNumber,
@@ -191,12 +189,10 @@ export function generateInvoiceJsonFromJsonInput(
     finalJson.push(jsonItem);
   });
 
-  const antiSpamWarningMsg =
-    "We've detected multiple instances of the same email in your students array. Please don't do that, and remove any duplicate emails to prevent your customers from getting spammed.";
-
-  return !hasDuplicateStrings(allEmails)
-    ? finalJson
-    : (console.error(antiSpamWarningMsg), window.alert(antiSpamWarningMsg));
+  return handleSpamWarning(
+    !checkForDuplicateEmails(userInput.students),
+    finalJson
+  );
 }
 
 export function generateInvoicePdf(
@@ -549,4 +545,20 @@ function generateRowedItems(items: InvoiceItemFields[]) {
   });
 
   return allRowedItems;
+}
+
+function handleSpamWarning(any: boolean, returnVal: any) {
+  const antiSpamWarningMsg =
+    "We've detected multiple instances of the same email in your recipients. Please don't do that, and remove any duplicate emails to prevent your customers from getting spammed.";
+
+  return any
+    ? returnVal
+    : (console.error(antiSpamWarningMsg), window.alert(antiSpamWarningMsg));
+}
+
+function checkForDuplicateEmails(students: Client[]): boolean {
+  // ? to check that not one email is being spammed;
+  let allEmails: string[] = [];
+  students.forEach((student) => allEmails.push(student.email));
+  return hasDuplicateStrings(allEmails);
 }

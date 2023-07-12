@@ -5,12 +5,14 @@ interface GenerateOrEmailButtons {
   DownloadInvoices: () => void;
   EmailInvoices: () => void;
   formRef?: React.RefObject<HTMLFormElement>;
+  active?: boolean;
 }
 
 export default function GenerateOrEmailButtons({
   DownloadInvoices,
   EmailInvoices,
   formRef,
+  active,
 }: GenerateOrEmailButtons) {
   const [disabled, setDisabled] = useState(false);
 
@@ -31,6 +33,7 @@ export default function GenerateOrEmailButtons({
           <Col md={{ span: 6 }} className="my-2">
             <div className="d-grid">
               <Button
+                disabled={!active}
                 type="submit"
                 variant="outline-primary"
                 size="lg"
@@ -47,7 +50,7 @@ export default function GenerateOrEmailButtons({
                 variant="outline-success"
                 size="lg"
                 onClick={handleEmailButtonClick}
-                disabled={disabled}
+                disabled={disabled || !active}
               >
                 {disabled ? "Sending" : "Send All Invoices"}
               </Button>
