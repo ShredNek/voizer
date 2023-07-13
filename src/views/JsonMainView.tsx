@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import {
   downloadInvoices,
   emailInvoices,
-  generateInvoiceJsonFromJsonInput,
+  generateInvoiceJsonFromJsonInputAndDetectSpam,
   jsonPlaceholder,
 } from "../logic/invoiceGenerationLogic";
 import { Convert } from "../logic/parseFromUserInput";
@@ -25,7 +25,8 @@ export default function JsonMainView() {
 
     const parsedInput = Convert.toUserInput(userInput);
 
-    const invoiceJson = generateInvoiceJsonFromJsonInput(parsedInput);
+    const invoiceJson =
+      generateInvoiceJsonFromJsonInputAndDetectSpam(parsedInput);
     switch (invoiceProcessMethod.current) {
       case "download":
         if (invoiceJson) downloadInvoices(invoiceJson);

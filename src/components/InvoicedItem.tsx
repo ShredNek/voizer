@@ -7,14 +7,18 @@ import {
   InputGroup,
 } from "react-bootstrap";
 import { FaXmark } from "react-icons/fa6";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useImperativeHandle } from "react";
 import { handleIfQuantityOrRateIsNull } from "../logic/utils";
 
+export interface InvoicedItemsInterfaceMethods {
+  clearItemAmounts: () => void;
+}
 interface InvoicedItemsInterface {
   bubbleUpTotalAmount: (amount: number) => void;
   id: string;
   deleteThisChild?: () => void;
   firstChild?: boolean;
+  firstItemRef?: React.MutableRefObject<any>;
 }
 
 export default function InvoicedItem({
@@ -22,10 +26,19 @@ export default function InvoicedItem({
   deleteThisChild,
   firstChild,
   id,
+  firstItemRef,
 }: InvoicedItemsInterface) {
   const [quantity, setQuantity] = useState<string>("");
   const [rate, setRate] = useState<string>("");
   const [total, setTotal] = useState(0);
+
+  useImperativeHandle(firstItemRef, () => ({
+    clearItemAmounts() {
+      setQuantity("");
+      setRate("");
+      setTotal(0);
+    },
+  }));
 
   function handleOnRateChange(e: React.ChangeEvent<HTMLInputElement>) {
     setRate(e.target.value);
@@ -42,7 +55,7 @@ export default function InvoicedItem({
   }, [quantity, rate]);
 
   return (
-    <div className="invoiced-items-rows" id={id}>
+    <div className="invoiced-items-rows" id={id} ref={firstItemRef}>
       <Row className="g-2 my-1">
         <Col md={{ span: 6 }}>
           <InputGroup>

@@ -5,11 +5,13 @@ import * as Utils from "../logic/utils";
 import {
   downloadInvoices,
   emailInvoices,
-  createInvoiceJsonFromManualInput,
+  createInvoiceJsonFromManualInputAndDetectSpam,
 } from "../logic/invoiceGenerationLogic";
 import { invoiceReturnMethod } from "../../interfaces/invoices";
 
-import RecipientChild from "../components/RecipientChild";
+import RecipientChild, {
+  RecipientChildMethods,
+} from "../components/RecipientChild";
 import InvoiceSenderDetails from "../components/InvoiceSenderDetails";
 import GenerateOrEmailButtons from "../components/GenerateOrEmailButtons";
 
@@ -20,12 +22,14 @@ export default function InvoiceMainView() {
   const [invoiceItemsAndKeys, setItemServiceAmountsAndKeys] = useState<
     Utils.InvoiceItemsAndKey[]
   >([]);
-  const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("0001");
+  const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("");
+  let buttonIsActive = useRef(true);
   const [validated, setValidated] = useState(false);
-  const recipientParentRef = useRef<HTMLDivElement>(null);
-  const invoiceSenderDetailsRef = useRef<HTMLDivElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
   const invoiceProcessMethod = useRef<invoiceReturnMethod>("download");
+  const formRef = useRef<HTMLFormElement>(null);
+  const invoiceSenderDetailsRef = useRef<HTMLDivElement>(null);
+  const recipientParentRef = useRef<HTMLDivElement>(null);
+  const firstRecipientChildRef = useRef<RecipientChildMethods | null>(null);
 
   function handleAddRecipientChild() {
     if (allRecipientChildKeys.length !== 0) {
@@ -42,8 +46,8 @@ export default function InvoiceMainView() {
       allRecipientChildKeys,
       setAllRecipientChildKeys
     );
-    // ? handles the deletion of a RecipientChild row
 
+    // ? handles the deletion of a RecipientChild row
     Utils.removeByKeyAndCallbackSetState(
       key,
       invoiceItemsAndKeys,
@@ -53,6 +57,7 @@ export default function InvoiceMainView() {
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    buttonIsActive.current = false;
 
     if (e.currentTarget.checkValidity() === false) {
       e.stopPropagation();
@@ -61,22 +66,35 @@ export default function InvoiceMainView() {
     }
     setValidated(false);
 
-    const json = createInvoiceJsonFromManualInput({
+    const json = createInvoiceJsonFromManualInputAndDetectSpam({
       recipientParentRef,
       invoiceSenderDetailsRef,
     });
 
+    if (!json) return;
+
+    const setFormDefault = () =>
+      Utils.wipeForm(
+        [recipientParentRef, invoiceSenderDetailsRef],
+        [
+          () => setInitialInvoiceNumber("0001"),
+          () => firstRecipientChildRef.current?.clearChildItems(),
+          () => setAllRecipientChildKeys([]),
+        ]
+      );
+
     switch (invoiceProcessMethod.current) {
       case "download":
-        if (json) downloadInvoices(json);
+        downloadInvoices(json);
+        setFormDefault();
         break;
       case "email":
-        if (json) {
-          emailInvoices(json);
-          location.reload();
-        }
+        emailInvoices(json);
+        setFormDefault();
         break;
     }
+
+    buttonIsActive.current = true;
   }
 
   function handleInvoiceNumberChange(newInvoiceNumber: string) {
@@ -109,6 +127,7 @@ export default function InvoiceMainView() {
               key={1}
               invoiceNumberAsString={Utils.prependZeroes(initialInvoiceNumber)}
               firstChild={true}
+              firstChildRef={firstRecipientChildRef}
             />
             {allRecipientChildKeys
               ? allRecipientChildKeys.map((key) => {
@@ -129,6 +148,7 @@ export default function InvoiceMainView() {
             + Add recipient
           </Button>
           <GenerateOrEmailButtons
+            active={buttonIsActive.current}
             formRef={formRef}
             DownloadInvoices={() => (invoiceProcessMethod.current = "download")}
             EmailInvoices={() => (invoiceProcessMethod.current = "email")}

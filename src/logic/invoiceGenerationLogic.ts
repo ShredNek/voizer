@@ -61,7 +61,7 @@ export const jsonPlaceholder = {
   notes: "Payment VIA direct deposit \nBSB: 12456\nACC: 123456789",
 };
 
-export function createInvoiceJsonFromManualInput({
+export function createInvoiceJsonFromManualInputAndDetectSpam({
   recipientParentRef,
   invoiceSenderDetailsRef,
 }: ElemRefsFromManualInput) {
@@ -167,7 +167,7 @@ export function createInvoiceJsonFromManualInput({
   return handleSpamWarning(!hasDuplicateStrings(allEmails), allCreatedInvoices);
 }
 
-export function generateInvoiceJsonFromJsonInput(
+export function generateInvoiceJsonFromJsonInputAndDetectSpam(
   userInput: UserInput
 ): InvoiceFields[] | void {
   let finalJson: InvoiceFields[] = [];

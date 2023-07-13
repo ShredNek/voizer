@@ -165,6 +165,27 @@ export function getDateAfterOneWeek() {
   return formattedDate;
 }
 
+export function wipeForm(
+  refElems: React.RefObject<HTMLDivElement>[],
+  callbacks: (() => void)[]
+) {
+  // ? clears all form data
+  refElems.forEach((e) => {
+    if (e.current) {
+      [...e.current.getElementsByTagName("input")].forEach((e) => {
+        e.value = "";
+      });
+      [...e.current.getElementsByTagName("textarea")].forEach((e) => {
+        e.value = "";
+      });
+    }
+  });
+
+  callbacks.forEach((fn) => {
+    fn();
+  });
+}
+
 const emailEndpoint = import.meta.env.VITE_EMAIL_ENDPOINT;
 
 export async function sendEmail(userArguments: EmailEndpointParameter) {

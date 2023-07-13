@@ -92,7 +92,6 @@ export default function InvoiceSenderDetails({
               required
               type="number"
               placeholder="0001"
-              defaultValue={"0001"}
               onChange={handleChange}
               min={1}
             ></Form.Control>

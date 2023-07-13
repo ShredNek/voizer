@@ -2,10 +2,10 @@ import { Button, Row, Col, ButtonToolbar } from "react-bootstrap";
 import { useState } from "react";
 
 interface GenerateOrEmailButtons {
+  active: boolean;
   DownloadInvoices: () => void;
   EmailInvoices: () => void;
   formRef?: React.RefObject<HTMLFormElement>;
-  active?: boolean;
 }
 
 export default function GenerateOrEmailButtons({

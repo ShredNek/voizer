@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useImperativeHandle } from "react";
 import { Form, Row, Col, FloatingLabel, Button } from "react-bootstrap";
-import InvoicedItem from "./InvoicedItem";
+import InvoicedItem, { InvoicedItemsInterfaceMethods } from "./InvoicedItem";
 import {
   AmountAndKey,
   keyIsInTotalAmounts,
@@ -11,9 +11,13 @@ import {
   getTodaysDate,
 } from "../logic/utils";
 
+export interface RecipientChildMethods {
+  clearChildItems: () => void;
+}
 interface RecipientChild {
   invoiceNumberAsString: string;
   firstChild?: boolean;
+  firstChildRef?: React.MutableRefObject<any>;
   deleteThisChild?: () => void;
 }
 
@@ -21,12 +25,21 @@ export default function RecipientChild({
   invoiceNumberAsString,
   firstChild,
   deleteThisChild,
+  firstChildRef,
 }: RecipientChild) {
   const [totalInvoiceAmount, setTotalInvoiceAmount] = useState(0);
   const [allItemsRowKeys, setAllItemsRowKeys] = useState<number[]>([]);
   const [itemAmountsAndKeys, setItemAmountsAndKeys] = useState<AmountAndKey[]>(
     []
   );
+  const firstItemRef = useRef<InvoicedItemsInterfaceMethods | null>(null);
+
+  useImperativeHandle(firstChildRef, () => ({
+    clearChildItems() {
+      () => setAllItemsRowKeys([]);
+      firstItemRef.current?.clearItemAmounts();
+    },
+  }));
 
   function handleAddRow() {
     if (allItemsRowKeys.length !== 0) {
@@ -40,7 +53,7 @@ export default function RecipientChild({
     setAllItemsRowKeys([2]);
   }
 
-  function refreshServiceAmountUsingChildKey(amount: number, key: number) {
+  function refreshTotalAmountUsingChildKey(amount: number, key: number) {
     // ? this function must be used as the onChange callback,
     // ? to set the amount of key's respective amount in the
     // ? state item in the itemAmountsAndKeys array
@@ -81,7 +94,11 @@ export default function RecipientChild({
   }, [itemAmountsAndKeys, allItemsRowKeys]);
 
   return (
-    <div className="reactive-recipient-children" id={invoiceNumberAsString}>
+    <div
+      className="reactive-recipient-children"
+      id={invoiceNumberAsString}
+      ref={firstChildRef}
+    >
       <Row>
         <Col>
           <h4 className="mx-1">Recipient details</h4>
@@ -149,9 +166,10 @@ export default function RecipientChild({
             key={1}
             id={"1"}
             bubbleUpTotalAmount={(amount: number) =>
-              refreshServiceAmountUsingChildKey(amount, 1)
+              refreshTotalAmountUsingChildKey(amount, 1)
             }
             firstChild={true}
+            firstItemRef={firstItemRef}
           />
           {allItemsRowKeys
             ? allItemsRowKeys.map((key) => {
@@ -160,7 +178,7 @@ export default function RecipientChild({
                     key={key}
                     id={key.toString()}
                     bubbleUpTotalAmount={(amount: number) =>
-                      refreshServiceAmountUsingChildKey(amount, key)
+                      refreshTotalAmountUsingChildKey(amount, key)
                     }
                     deleteThisChild={() => removeItemChildRow(key)}
                   />
