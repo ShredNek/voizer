@@ -1,110 +1,232 @@
 import { Form, Container, Button } from "react-bootstrap";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
-import * as Utils from "../logic/utils";
+import { prependZeroes, incrementKey } from "../logic/utils";
 import {
   downloadInvoices,
   emailInvoices,
   createInvoiceJsonFromManualInputAndDetectSpam,
+  recalculateInvoiceNumbersOnRecipientChildren,
 } from "../logic/invoiceGenerationLogic";
-import { invoiceReturnMethod } from "../../interfaces/invoices";
+import {
+  InvoiceSenderDetailsState,
+  invoiceReturnMethod,
+  InvoiceRecipientDetailsState,
+} from "../../interfaces/invoices";
 
-import RecipientChild, {
-  RecipientChildMethods,
-} from "../components/RecipientChild";
+import RecipientChild from "../components/RecipientChild";
 import InvoiceSenderDetails from "../components/InvoiceSenderDetails";
 import GenerateOrEmailButtons from "../components/GenerateOrEmailButtons";
 
 export default function InvoiceMainView() {
-  const [allRecipientChildKeys, setAllRecipientChildKeys] = useState<number[]>(
-    []
-  );
-  const [invoiceItemsAndKeys, setItemServiceAmountsAndKeys] = useState<
-    Utils.InvoiceItemsAndKey[]
-  >([]);
-  const [initialInvoiceNumber, setInitialInvoiceNumber] = useState("");
-  let buttonIsActive = useRef(true);
+  const defaultInvNumber = "0001";
+
+  const [invoiceSenderDetailsState, setInvoiceSenderDetailsState] = useState({
+    name: "",
+    email: "",
+    contactNumber: "",
+    businessNumber: "",
+    notes: "",
+    baseInvoiceNumber: defaultInvNumber,
+  } as InvoiceSenderDetailsState);
+
+  const [invoiceRecipientState, setInvoiceRecipientState] = useState([
+    {
+      name: "",
+      email: "",
+      address: "",
+      invoiceNumber: defaultInvNumber,
+      invoiceTotal: 0,
+      items: [{ itemName: "", quantity: "", rate: "", key: "1" }],
+    },
+  ] as InvoiceRecipientDetailsState[]);
+
   const [validated, setValidated] = useState(false);
   const invoiceProcessMethod = useRef<invoiceReturnMethod>("download");
   const formRef = useRef<HTMLFormElement>(null);
-  const invoiceSenderDetailsRef = useRef<HTMLDivElement>(null);
-  const recipientParentRef = useRef<HTMLDivElement>(null);
-  const firstRecipientChildRef = useRef<RecipientChildMethods | null>(null);
+  let buttonIsActive = useRef(true);
 
-  function handleAddRecipientChild() {
-    if (allRecipientChildKeys.length !== 0) {
-      const numbToAdd = Utils.incrementId(allRecipientChildKeys);
-      setAllRecipientChildKeys([...allRecipientChildKeys, numbToAdd]);
-      return;
-    }
-    setAllRecipientChildKeys([0]);
+  function handleInvoiceSenderState(state: InvoiceSenderDetailsState) {
+    const recalculatedInvNumRecipients =
+      recalculateInvoiceNumbersOnRecipientChildren(
+        invoiceRecipientState,
+        state.baseInvoiceNumber
+      );
+
+    setInvoiceSenderDetailsState(() => state);
+    setInvoiceRecipientState(() => recalculatedInvNumRecipients);
   }
 
-  function handleRecipientChildDeletion(key: number) {
-    Utils.deleteKeyAndCallbackSetState(
-      key,
-      allRecipientChildKeys,
-      setAllRecipientChildKeys
+  function handleAddRecipientChild() {
+    let nextLargestRecipientId = "";
+
+    if (invoiceRecipientState.length >= 1) {
+      const priorKeys = invoiceRecipientState.map((i) => {
+        return i.invoiceNumber;
+      });
+      nextLargestRecipientId = incrementKey(priorKeys);
+    } else {
+      nextLargestRecipientId = incrementKey([
+        invoiceSenderDetailsState.baseInvoiceNumber,
+      ]);
+    }
+
+    setInvoiceRecipientState([
+      ...invoiceRecipientState,
+      {
+        address: "",
+        items: [
+          {
+            itemName: "",
+            quantity: "",
+            rate: "",
+            // ? Because this is the first row of the child,
+            // ? it will always be 1
+            key: "1",
+          },
+        ],
+        invoiceTotal: 0,
+        invoiceNumber: prependZeroes(nextLargestRecipientId),
+        name: "",
+        email: "",
+      },
+    ]);
+  }
+
+  function updateRecipientsOnChange(recipient: InvoiceRecipientDetailsState) {
+    const arrayExcludingChangedRecipient = invoiceRecipientState.filter(
+      (i) => i.invoiceNumber !== recipient.invoiceNumber
     );
 
-    // ? handles the deletion of a RecipientChild row
-    Utils.removeByKeyAndCallbackSetState(
-      key,
-      invoiceItemsAndKeys,
-      setItemServiceAmountsAndKeys
+    const sortedRecipients = [
+      ...arrayExcludingChangedRecipient,
+      recipient,
+    ].sort((a, b) => Number(a.invoiceNumber) - Number(b.invoiceNumber));
+
+    setInvoiceRecipientState(() => sortedRecipients);
+  }
+
+  function handleRecipientChildDeletion(invoiceNumber: string) {
+    const arrayWithoutDeletedItem = invoiceRecipientState.filter(
+      (i) => i.invoiceNumber !== invoiceNumber
     );
+
+    setInvoiceRecipientState(() => [...arrayWithoutDeletedItem]);
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     buttonIsActive.current = false;
 
-    if (e.currentTarget.checkValidity() === false) {
-      e.stopPropagation();
-      setValidated(true);
-      return;
-    }
-    setValidated(false);
+    // if (e.currentTarget.checkValidity() === false) {
+    //   e.stopPropagation();
+    //   setValidated(true);
+    //   buttonIsActive.current = true;
+    //   return;
+    // }
+    // setValidated(false);
 
     const json = createInvoiceJsonFromManualInputAndDetectSpam({
-      recipientParentRef,
-      invoiceSenderDetailsRef,
+      invoiceSenderDetailsState,
+      invoiceRecipientState,
     });
 
-    if (!json) return;
+    if (!json) {
+      setValidated(true);
+      buttonIsActive.current = true;
+      return;
+    }
 
-    const setFormDefault = () =>
-      Utils.wipeForm(
-        [recipientParentRef, invoiceSenderDetailsRef],
-        [
-          () => setInitialInvoiceNumber("0001"),
-          () => firstRecipientChildRef.current?.clearChildItems(),
-          () => setAllRecipientChildKeys([]),
-        ]
-      );
+    // ? sets other aspects of the form to default
+    console.log("wiping");
+    setInvoiceSenderDetailsState({
+      name: "",
+      email: "",
+      contactNumber: "",
+      businessNumber: "",
+      notes: "",
+      baseInvoiceNumber: defaultInvNumber,
+    });
+
+    setInvoiceRecipientState([
+      {
+        name: "",
+        email: "",
+        address: "",
+        invoiceNumber: defaultInvNumber,
+        invoiceTotal: 0,
+        items: [{ itemName: "", quantity: "", rate: "", key: "1" }],
+      },
+    ]);
+
+    // ? filthiest of hacks because state is fucking cancer
+    setTimeout(() => {
+      setInvoiceSenderDetailsState({
+        name: "",
+        email: "",
+        contactNumber: "",
+        businessNumber: "",
+        notes: "",
+        baseInvoiceNumber: defaultInvNumber,
+      });
+
+      setInvoiceRecipientState([
+        {
+          name: "",
+          email: "",
+          address: "",
+          invoiceNumber: defaultInvNumber,
+          invoiceTotal: 0,
+          items: [{ itemName: "", quantity: "", rate: "", key: "1" }],
+        },
+      ]);
+    }, 1000);
 
     switch (invoiceProcessMethod.current) {
       case "download":
         downloadInvoices(json);
-        setFormDefault();
         break;
       case "email":
         emailInvoices(json);
-        setFormDefault();
         break;
     }
 
     buttonIsActive.current = true;
   }
 
-  function handleInvoiceNumberChange(newInvoiceNumber: string) {
-    setInitialInvoiceNumber(() => newInvoiceNumber);
-  }
+  useEffect(() => {
+    //  ?
+    //  ? This is where the default state of the invoices is set
+    //  ?
+    setInvoiceSenderDetailsState({
+      name: "",
+      email: "",
+      contactNumber: "",
+      businessNumber: "",
+      notes: "",
+      baseInvoiceNumber: defaultInvNumber,
+    });
+
+    setInvoiceRecipientState([
+      {
+        name: "",
+        email: "",
+        address: "",
+        invoiceNumber: defaultInvNumber,
+        invoiceTotal: 0,
+        items: [{ itemName: "", quantity: "", rate: "", key: "1" }],
+      },
+    ]);
+  }, []);
+
+  useEffect(() => {
+    console.log(invoiceSenderDetailsState);
+    console.log(invoiceRecipientState);
+  }, [invoiceSenderDetailsState, invoiceRecipientState]);
 
   return (
     <section>
       <h2 className="my-4 text-center">Let's send some invoices!</h2>
-
       <Container>
         <Form
           noValidate
@@ -113,32 +235,26 @@ export default function InvoiceMainView() {
           ref={formRef}
         >
           <h4>Invoice sender's details:</h4>
-          <div ref={invoiceSenderDetailsRef}>
+          <div>
             <InvoiceSenderDetails
-              bubbleUpInitialInvoiceNumber={handleInvoiceNumberChange}
+              onChange={handleInvoiceSenderState}
+              initialDetails={invoiceSenderDetailsState}
             />
           </div>
           <div className="divider" />
           <h4 className="my-4">
             Please enter the details of each recipient below...
           </h4>
-          <div id="all-recipients" ref={recipientParentRef}>
-            <RecipientChild
-              key={1}
-              invoiceNumberAsString={Utils.prependZeroes(initialInvoiceNumber)}
-              firstChild={true}
-              firstChildRef={firstRecipientChildRef}
-            />
-            {allRecipientChildKeys
-              ? allRecipientChildKeys.map((key) => {
+          <div id="all-recipients">
+            {invoiceRecipientState.length >= 1
+              ? invoiceRecipientState.map((recipient, index) => {
                   return (
                     <RecipientChild
-                      key={key}
-                      invoiceNumberAsString={Utils.convertToInvoiceNumberAsString(
-                        initialInvoiceNumber,
-                        key
-                      )}
-                      deleteThisChild={() => handleRecipientChildDeletion(key)}
+                      key={recipient.invoiceNumber}
+                      firstChild={index === 0 ? true : false}
+                      recipientProps={recipient}
+                      deleteThisChild={handleRecipientChildDeletion}
+                      bubbleUpRecipientState={updateRecipientsOnChange}
                     />
                   );
                 })

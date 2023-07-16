@@ -9,62 +9,93 @@ import {
 import { FaXmark } from "react-icons/fa6";
 import React, { useState, useEffect, useImperativeHandle } from "react";
 import { handleIfQuantityOrRateIsNull } from "../logic/utils";
+import { InvoiceRecipientItemState } from "../../interfaces/invoices";
 
 export interface InvoicedItemsInterfaceMethods {
   clearItemAmounts: () => void;
 }
 interface InvoicedItemsInterface {
-  bubbleUpTotalAmount: (amount: number) => void;
+  bubbleUpItem: (item: InvoiceRecipientItemState) => void;
   id: string;
   deleteThisChild?: () => void;
   firstChild?: boolean;
   firstItemRef?: React.MutableRefObject<any>;
+  itemProps: InvoiceRecipientItemState;
 }
 
 export default function InvoicedItem({
-  bubbleUpTotalAmount,
+  bubbleUpItem,
   deleteThisChild,
   firstChild,
   id,
   firstItemRef,
+  itemProps,
 }: InvoicedItemsInterface) {
-  const [quantity, setQuantity] = useState<string>("");
-  const [rate, setRate] = useState<string>("");
+  const [itemDetails, setItemDetails] = useState<InvoiceRecipientItemState>({
+    ...itemProps,
+  });
   const [total, setTotal] = useState(0);
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
+    const newState: InvoiceRecipientItemState = {
+      ...itemDetails,
+      [e.target.name]: e.target.value,
+    };
+
+    bubbleUpItem(newState);
+    setItemDetails({
+      ...newState,
+      key: newState.key,
+      itemName: newState.itemName,
+    });
+
+    if (
+      Number(newState.quantity) < 0 ||
+      Number(newState.rate) < 0 ||
+      Number.isNaN(Number(newState.quantity)) ||
+      Number.isNaN(Number(newState.rate))
+    ) {
+      return;
+    }
+
+    let newTotal = handleIfQuantityOrRateIsNull(
+      Number(newState.quantity),
+      Number(newState.rate)
+    );
+    setTotal(newTotal);
+    bubbleUpItem(newState);
+  }
+
+  useEffect(() => {
+    const quantity = itemProps ? Number(itemProps.quantity) : 0;
+    const rate = itemProps ? Number(itemProps.rate) : 0;
+
+    let newTotal = handleIfQuantityOrRateIsNull(quantity, rate);
+    setTotal(newTotal);
+    bubbleUpItem({ ...itemProps });
+  }, []);
 
   useImperativeHandle(firstItemRef, () => ({
     clearItemAmounts() {
-      setQuantity("");
-      setRate("");
+      setItemDetails({
+        itemName: "",
+        quantity: "",
+        rate: "",
+        key: id,
+      });
       setTotal(0);
     },
   }));
 
-  function handleOnRateChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setRate(e.target.value);
-  }
-
-  function handleOnQuantityChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setQuantity(e.target.value);
-  }
-
-  useEffect(() => {
-    let newTotal = handleIfQuantityOrRateIsNull(Number(quantity), Number(rate));
-    setTotal(newTotal);
-    bubbleUpTotalAmount(newTotal);
-  }, [quantity, rate]);
-
   return (
-    <div className="invoiced-items-rows" id={id} ref={firstItemRef}>
+    <div className="invoiced-items-rows" ref={firstItemRef}>
       <Row className="g-2 my-1">
         <Col md={{ span: 6 }}>
           <InputGroup>
             {firstChild ? null : (
-              <Button
-                variant="danger"
-                id="button-addon1"
-                onClick={deleteThisChild}
-              >
+              <Button variant="danger" onClick={deleteThisChild}>
                 <FaXmark />
               </Button>
             )}
@@ -72,8 +103,10 @@ export default function InvoicedItem({
               <Form.Control
                 required
                 type="name"
+                name="itemName"
                 placeholder="First item"
-                id="item-name"
+                value={itemDetails.itemName}
+                onChange={handleChange}
               />
             </FloatingLabel>
           </InputGroup>
@@ -83,11 +116,11 @@ export default function InvoicedItem({
             <Form.Control
               required
               type="number"
+              name="quantity"
               min={1}
               placeholder="0"
-              value={quantity}
-              onChange={handleOnQuantityChange}
-              id="quantity"
+              value={itemDetails.quantity}
+              onChange={handleChange}
             />
           </FloatingLabel>
         </Col>
@@ -96,16 +129,21 @@ export default function InvoicedItem({
             <Form.Control
               required
               type="float"
+              name="rate"
               min={1}
               placeholder="1"
-              value={rate}
-              onChange={handleOnRateChange}
-              id="rate"
+              value={itemDetails.rate}
+              onChange={handleChange}
             />
           </FloatingLabel>
         </Col>
         <Col md={{ span: 2 }} className="recipient-default-value">
-          <Form.Control value={`$${total.toFixed(2)}`} plaintext readOnly />
+          <Form.Control
+            name="total"
+            value={`$${total.toFixed(2)}`}
+            plaintext
+            readOnly
+          />
         </Col>
       </Row>
     </div>

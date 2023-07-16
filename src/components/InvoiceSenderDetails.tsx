@@ -1,14 +1,24 @@
 import { Form, Row, Col, InputGroup, FloatingLabel } from "react-bootstrap";
+import { InvoiceSenderDetailsState } from "../../interfaces/invoices";
+
 interface InvoiceSenderDetails {
-  bubbleUpInitialInvoiceNumber: (str: string) => void;
+  initialDetails: InvoiceSenderDetailsState;
+  onChange: (state: InvoiceSenderDetailsState) => void;
 }
 
 export default function InvoiceSenderDetails({
-  bubbleUpInitialInvoiceNumber,
+  initialDetails,
+  onChange,
 }: InvoiceSenderDetails) {
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    return bubbleUpInitialInvoiceNumber(e.target.value);
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
+    onChange({
+      ...initialDetails,
+      [e.target.name]: e.target.value,
+    });
   }
+
   return (
     <div id="invoice-sender-details">
       <Row>
@@ -16,10 +26,13 @@ export default function InvoiceSenderDetails({
           <Form.Group>
             <FloatingLabel className="my-2" label="Full Name">
               <Form.Control
+                autoComplete="true"
                 required
                 type="name"
-                id="name"
+                name="name"
                 placeholder="Full Name"
+                value={initialDetails.name}
+                onChange={handleChange}
               />
               <Form.Control.Feedback>Looks good!</Form.Control.Feedback>
               <Form.Control.Feedback type="invalid">
@@ -33,9 +46,12 @@ export default function InvoiceSenderDetails({
             <FloatingLabel className="my-2" label="Email">
               <Form.Control
                 required
+                autoComplete="true"
                 type="email"
-                id="email"
+                name="email"
                 placeholder="Email"
+                value={initialDetails.email}
+                onChange={handleChange}
               />
               <Form.Control.Feedback>Looks good!</Form.Control.Feedback>
               <Form.Control.Feedback type="invalid">
@@ -50,9 +66,12 @@ export default function InvoiceSenderDetails({
           <Form.Group>
             <FloatingLabel className="my-2" label="Contact Number">
               <Form.Control
+                autoComplete="true"
                 type="number"
-                id="number"
+                name="contactNumber"
                 placeholder="Contact Number"
+                value={initialDetails.contactNumber}
+                onChange={handleChange}
               />
             </FloatingLabel>
           </Form.Group>
@@ -63,7 +82,9 @@ export default function InvoiceSenderDetails({
               <Form.Control
                 type="number"
                 placeholder="i.e. If Australian, write your ABN"
-                id="business-number"
+                name="businessNumber"
+                value={initialDetails.businessNumber}
+                onChange={handleChange}
               />
             </FloatingLabel>
           </Form.Group>
@@ -77,8 +98,10 @@ export default function InvoiceSenderDetails({
               as="textarea"
               rows={4}
               placeholder="i.e. ACC no. & BSB, delivery should take 1 week..."
-              id="notes"
+              name="notes"
               className="textarea-height short"
+              value={initialDetails.notes}
+              onChange={handleChange}
             ></Form.Control>
           </Form.Group>
         </Col>
@@ -91,7 +114,9 @@ export default function InvoiceSenderDetails({
             <Form.Control
               required
               type="number"
+              name="baseInvoiceNumber"
               placeholder="0001"
+              value={initialDetails.baseInvoiceNumber}
               onChange={handleChange}
               min={1}
             ></Form.Control>

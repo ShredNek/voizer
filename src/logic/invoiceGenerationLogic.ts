@@ -6,6 +6,7 @@ import {
   getDateAfterOneWeek,
   convertToInvoiceNumberAsString,
   hasDuplicateStrings,
+  prependZeroes,
 } from "./utils.ts";
 import { EmailEndpointParameter } from "../../interfaces/emails.ts";
 import {
@@ -15,13 +16,16 @@ import {
   invoiceReturnMethod,
   UserInput,
   Client,
+  InvoiceSenderDetailsState,
+  InvoiceRecipientDetailsState,
+  InvoiceRecipientItemState,
 } from "../../interfaces/invoices.ts";
 
 // ? INTERNAL INTERFACES ?
 
-interface ElemRefsFromManualInput {
-  recipientParentRef: React.RefObject<HTMLDivElement>;
-  invoiceSenderDetailsRef: React.RefObject<HTMLDivElement>;
+interface StatesFromManualInput {
+  invoiceSenderDetailsState: InvoiceSenderDetailsState;
+  invoiceRecipientState: InvoiceRecipientDetailsState[];
 }
 
 // ? EXPORTED FUNCTIONS ?
@@ -61,110 +65,63 @@ export const jsonPlaceholder = {
   notes: "Payment VIA direct deposit \nBSB: 12456\nACC: 123456789",
 };
 
+export function recalculateInvoiceTotal(items: InvoiceRecipientItemState[]) {
+  const amounts: number[] = items.map((item) => {
+    return Number(item.quantity) * Number(item.rate);
+  });
+
+  return amounts.reduce((prev, curr) => prev + curr, 0);
+}
+
+export function recalculateInvoiceNumbersOnRecipientChildren(
+  state: InvoiceRecipientDetailsState[],
+  baseInvNum: string
+) {
+  return state.map((recipient, index) => ({
+    ...recipient,
+    invoiceNumber: prependZeroes((Number(baseInvNum) + index).toString()),
+  }));
+}
+
 export function createInvoiceJsonFromManualInputAndDetectSpam({
-  recipientParentRef,
-  invoiceSenderDetailsRef,
-}: ElemRefsFromManualInput) {
-  const reactiveRecipientChildren =
-    recipientParentRef.current?.getElementsByClassName(
-      "reactive-recipient-children"
-    );
-  const invoiceSenderInputs =
-    invoiceSenderDetailsRef.current?.getElementsByTagName("input");
-  const invoiceSenderTextareas =
-    invoiceSenderDetailsRef.current?.getElementsByTagName("textarea");
+  invoiceSenderDetailsState,
+  invoiceRecipientState,
+}: StatesFromManualInput) {
   let allCreatedInvoices: InvoiceFields[] = [];
-  let invoiceSenderDetails = {} as PersonalDetails;
-  let invoiceSenderNotes = "";
 
-  // ? this quickly check that the ref is not null,
-  // ? then we search each item if and saves the data if it
-  // ? the value from the text area with the id of "notes"
-  if (invoiceSenderTextareas) {
-    [...invoiceSenderTextareas].forEach((e) => {
-      if (e.id === "notes") invoiceSenderNotes = e.value;
+  let invoiceSenderDetails: PersonalDetails = {
+    name: invoiceSenderDetailsState.name,
+    email: invoiceSenderDetailsState.email,
+    contactNumber: invoiceSenderDetailsState.contactNumber,
+    businessNumber: invoiceSenderDetailsState.businessNumber,
+  };
+
+  invoiceRecipientState.forEach((recipient) => {
+    let allRecipientItems: InvoiceItemFields[] = recipient.items.map((item) => {
+      return {
+        itemName: item.itemName,
+        quantity: item.quantity,
+        rate: item.rate,
+      };
     });
-  }
 
-  // ? saves all relevant information of invoice sender
-  if (invoiceSenderInputs) {
-    [...invoiceSenderInputs].forEach((e) => {
-      switch (e.id) {
-        case "name":
-          invoiceSenderDetails.name = e.value;
-          break;
-        case "email":
-          invoiceSenderDetails.email = e.value;
-          break;
-        case "number":
-          invoiceSenderDetails.number = e.value;
-          break;
-        case "business-number":
-          invoiceSenderDetails.businessNumber = e.value;
-          break;
-      }
-    });
-  }
+    let recipientObject: InvoiceFields = {
+      from: invoiceSenderDetails,
+      to: { name: recipient.name, email: recipient.email },
+      items: allRecipientItems,
+      notes: invoiceSenderDetailsState.notes,
+      invoiceNumber: recipient.invoiceNumber,
+    };
 
-  if (reactiveRecipientChildren) {
-    [...reactiveRecipientChildren].forEach((e) => {
-      let recipientObject = {} as InvoiceFields;
+    allCreatedInvoices.push(recipientObject);
+  });
 
-      // ? the id of the child is it's invoice number
-      recipientObject.invoiceNumber = e.id;
-      recipientObject.notes = invoiceSenderNotes;
-      recipientObject.from = invoiceSenderDetails;
-      recipientObject.to = {} as PersonalDetails;
-      recipientObject.items = [];
+  const allEmailAddresses = allCreatedInvoices.map((inv) => inv.to.email);
 
-      // ? This confusing use of the spread syntax is to immediately convert
-      // ? from an html collection to an array
-      const allInputElems = [...e.getElementsByTagName("input")];
-      // ? and this is to find each by their id and sort them into the object
-      allInputElems.forEach((e) => {
-        switch (e.id) {
-          case "name":
-            recipientObject.to.name = e.value;
-            break;
-          case "email":
-            recipientObject.to.email = e.value;
-            break;
-        }
-        // TODO TAKE THE REST OF THE DATA FORM THE CHILD
-      });
-
-      const allItemRowsElems = [
-        ...e.getElementsByClassName("invoiced-items-rows"),
-      ];
-
-      allItemRowsElems.forEach((e) => {
-        const inputElemsOfItems = [...e.getElementsByTagName("input")];
-
-        let rowedItem = {} as InvoiceItemFields;
-        inputElemsOfItems.forEach((e) => {
-          switch (e.id) {
-            case "item-name":
-              rowedItem.itemName = e.value;
-              break;
-            case "quantity":
-              rowedItem.quantity = e.value;
-              break;
-            case "rate":
-              rowedItem.rate = e.value;
-              break;
-          }
-        });
-
-        recipientObject.items.push(rowedItem);
-      });
-
-      allCreatedInvoices.push(recipientObject);
-    });
-  }
-
-  const allEmails = allCreatedInvoices.map((inv) => inv.to.email);
-
-  return handleSpamWarning(!hasDuplicateStrings(allEmails), allCreatedInvoices);
+  return handleSpamWarning(
+    !hasDuplicateStrings(allEmailAddresses),
+    allCreatedInvoices
+  );
 }
 
 export function generateInvoiceJsonFromJsonInputAndDetectSpam(

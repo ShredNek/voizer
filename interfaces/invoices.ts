@@ -2,7 +2,7 @@ export interface InvoiceFields {
   from: PersonalDetails;
   to: PersonalDetails;
   items: InvoiceItemFields[];
-  notes: string;
+  notes?: string;
   invoiceNumber: string;
 }
 
@@ -15,8 +15,24 @@ export interface InvoiceItemFields {
 export interface PersonalDetails {
   name: string;
   email: string;
-  number?: string;
+  contactNumber?: string;
   businessNumber?: string;
+}
+
+export interface InvoiceSenderDetailsState extends PersonalDetails {
+  notes?: string;
+  baseInvoiceNumber: string;
+}
+
+export interface InvoiceRecipientItemState extends InvoiceItemFields {
+  key: string;
+}
+
+export interface InvoiceRecipientDetailsState extends PersonalDetails {
+  address?: string;
+  items: InvoiceRecipientItemState[];
+  invoiceTotal: number;
+  invoiceNumber: string;
 }
 
 export interface Client {

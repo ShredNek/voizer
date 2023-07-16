@@ -1,102 +1,131 @@
-import { useEffect, useState, useRef, useImperativeHandle } from "react";
+import React, { useState, useRef, useImperativeHandle } from "react";
 import { Form, Row, Col, FloatingLabel, Button } from "react-bootstrap";
 import InvoicedItem, { InvoicedItemsInterfaceMethods } from "./InvoicedItem";
+import { incrementKey } from "../logic/utils";
+import { recalculateInvoiceTotal } from "../logic/invoiceGenerationLogic";
 import {
-  AmountAndKey,
-  keyIsInTotalAmounts,
-  getAmountByKeyAndCallbackSetState,
-  removeByKeyAndCallbackSetState,
-  incrementId,
-  deleteKeyAndCallbackSetState,
-  getTodaysDate,
-} from "../logic/utils";
+  InvoiceRecipientDetailsState,
+  InvoiceRecipientItemState,
+} from "../../interfaces/invoices";
 
 export interface RecipientChildMethods {
   clearChildItems: () => void;
 }
 interface RecipientChild {
-  invoiceNumberAsString: string;
+  recipientProps: InvoiceRecipientDetailsState;
   firstChild?: boolean;
   firstChildRef?: React.MutableRefObject<any>;
-  deleteThisChild?: () => void;
+  deleteThisChild?: (invNumber: string) => void;
+  bubbleUpRecipientState: (state: InvoiceRecipientDetailsState) => void;
 }
 
 export default function RecipientChild({
-  invoiceNumberAsString,
+  recipientProps,
   firstChild,
   deleteThisChild,
   firstChildRef,
+  bubbleUpRecipientState,
 }: RecipientChild) {
-  const [totalInvoiceAmount, setTotalInvoiceAmount] = useState(0);
-  const [allItemsRowKeys, setAllItemsRowKeys] = useState<number[]>([]);
-  const [itemAmountsAndKeys, setItemAmountsAndKeys] = useState<AmountAndKey[]>(
-    []
-  );
   const firstItemRef = useRef<InvoicedItemsInterfaceMethods | null>(null);
+
+  const [recipientChildDetails, setRecipientChildDetails] = useState({
+    ...recipientProps,
+  });
+
+  function handleAddItem() {
+    const priorKeys = recipientChildDetails.items.map((i) => {
+      return i.key;
+    });
+    const nextLargestId = incrementKey(priorKeys);
+    setRecipientChildDetails({
+      ...recipientChildDetails,
+      items: [
+        ...recipientChildDetails.items,
+        { itemName: "", quantity: "", rate: "", key: nextLargestId },
+      ],
+    });
+  }
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
+    const newInvoiceTotal = recalculateInvoiceTotal(
+      recipientChildDetails.items
+    );
+
+    setRecipientChildDetails(() => ({
+      ...recipientChildDetails,
+      [e.target.name]: e.target.value,
+      invoiceTotal: newInvoiceTotal,
+    }));
+    bubbleUpRecipientState(recipientChildDetails);
+  }
+
+  function handleBubbledItemChange(
+    invoiceRecipientItemState: InvoiceRecipientItemState
+  ) {
+    const arrayWithoutChangedItem = recipientChildDetails.items.filter(
+      (i) => i.key !== invoiceRecipientItemState.key
+    );
+
+    const sortedItems = [
+      ...arrayWithoutChangedItem,
+      invoiceRecipientItemState,
+    ].sort((a, b) => Number(a.key) - Number(b.key));
+
+    const newInvoiceTotal = recalculateInvoiceTotal(sortedItems);
+
+    const newState = {
+      ...recipientChildDetails,
+      items: sortedItems,
+      invoiceTotal: newInvoiceTotal,
+    };
+
+    setRecipientChildDetails(newState);
+    bubbleUpRecipientState(newState);
+  }
+
+  function removeItem(key: string) {
+    const arrayWithoutDeletedItem = recipientChildDetails.items.filter(
+      (i) => i.key !== key
+    );
+    const amounts = arrayWithoutDeletedItem.map((i) => {
+      return Number(i.quantity) * Number(i.rate);
+    });
+
+    let newInvoiceTotal = amounts.reduce(
+      (prev: number, curr: number) => prev + curr,
+      0
+    );
+
+    setRecipientChildDetails(() => ({
+      ...recipientChildDetails,
+      invoiceTotal: newInvoiceTotal,
+      items: Array.from(arrayWithoutDeletedItem),
+    }));
+  }
 
   useImperativeHandle(firstChildRef, () => ({
     clearChildItems() {
-      () => setAllItemsRowKeys([]);
+      console.log("clearning");
+      setRecipientChildDetails(() => ({
+        name: "",
+        email: "",
+        address: "",
+        items: [{ itemName: "", quantity: "", rate: "", key: "1" }],
+        invoiceTotal: 0,
+        invoiceNumber: recipientChildDetails.invoiceNumber,
+      }));
+      console.log(recipientChildDetails);
+
       firstItemRef.current?.clearItemAmounts();
     },
   }));
 
-  function handleAddRow() {
-    if (allItemsRowKeys.length !== 0) {
-      const numbToAdd = incrementId(allItemsRowKeys);
-      setAllItemsRowKeys([...allItemsRowKeys, numbToAdd]);
-      return;
-    }
-    // ? set to the umber 2 cause... idfk
-    // ? it is only a means of makring a place in an array so it's fine for now.
-    // ? the methods on this component only increment, not fill in the gaps
-    setAllItemsRowKeys([2]);
-  }
-
-  function refreshTotalAmountUsingChildKey(amount: number, key: number) {
-    // ? this function must be used as the onChange callback,
-    // ? to set the amount of key's respective amount in the
-    // ? state item in the itemAmountsAndKeys array
-    if (!keyIsInTotalAmounts(key, itemAmountsAndKeys)) {
-      const newAmountAndKey: AmountAndKey = { amount, key };
-      setItemAmountsAndKeys([...itemAmountsAndKeys, newAmountAndKey]);
-      return;
-    }
-
-    getAmountByKeyAndCallbackSetState(
-      key,
-      amount,
-      itemAmountsAndKeys,
-      setItemAmountsAndKeys
-    );
-  }
-
-  function removeItemChildRow(key: number) {
-    // ? handles the deletion of a InvoicedItems row
-    deleteKeyAndCallbackSetState(key, allItemsRowKeys, setAllItemsRowKeys);
-    removeByKeyAndCallbackSetState(
-      key,
-      itemAmountsAndKeys,
-      setItemAmountsAndKeys
-    );
-  }
-
-  useEffect(() => {
-    // ? This is what sets the total for the invoice
-    // ? it watches for changes in the InvoicedItem children
-    let newInvoiceTotal = 0;
-
-    itemAmountsAndKeys.forEach((e) => {
-      newInvoiceTotal = newInvoiceTotal + e.amount;
-    });
-
-    setTotalInvoiceAmount(newInvoiceTotal);
-  }, [itemAmountsAndKeys, allItemsRowKeys]);
-
   return (
     <div
       className="reactive-recipient-children"
-      id={invoiceNumberAsString}
+      id={recipientChildDetails.invoiceNumber}
       ref={firstChildRef}
     >
       <Row>
@@ -104,7 +133,7 @@ export default function RecipientChild({
           <h4 className="mx-1">Recipient details</h4>
         </Col>
         <Col>
-          <p>INV#{invoiceNumberAsString}</p>
+          <p>INV#{recipientChildDetails.invoiceNumber}</p>
         </Col>
       </Row>
       <Form.Group>
@@ -115,7 +144,9 @@ export default function RecipientChild({
                 required
                 type="name"
                 placeholder="John Smith"
-                id="name"
+                value={recipientChildDetails.name}
+                name="name"
+                onChange={handleChange}
               />
               <Form.Control.Feedback type="invalid">
                 Please enter the recipient's full name
@@ -129,7 +160,9 @@ export default function RecipientChild({
                 required
                 type="email"
                 placeholder="example@test.com"
-                id="email"
+                value={recipientChildDetails.email}
+                name="email"
+                onChange={handleChange}
               />
               <Form.Control.Feedback type="invalid">
                 Please enter the recipient's email
@@ -144,43 +177,27 @@ export default function RecipientChild({
               <Form.Control
                 type="address"
                 placeholder="1 Test Avenue"
-                id="address"
+                value={recipientChildDetails.address}
+                name="address"
+                onChange={handleChange}
               />
             </FloatingLabel>
           </Col>
-          {/* // TODO - ADD THIS FEATURE LATER */}
-          {/* <Col md={{ span: 4 }}>
-            <FloatingLabel label="Receipt Date">
-              <Form.Control
-                type="string"
-                placeholder={getTodaysDate()}
-                id="date"
-              />
-            </FloatingLabel>
-          </Col> */}
         </Row>
         <div className="divider white" />
         <h4 className="m-1">Invoiced items</h4>
         <div id="all-invoiced-amount-rows">
-          <InvoicedItem
-            key={1}
-            id={"1"}
-            bubbleUpTotalAmount={(amount: number) =>
-              refreshTotalAmountUsingChildKey(amount, 1)
-            }
-            firstChild={true}
-            firstItemRef={firstItemRef}
-          />
-          {allItemsRowKeys
-            ? allItemsRowKeys.map((key) => {
+          {recipientChildDetails.items
+            ? recipientChildDetails.items.map((item, index) => {
                 return (
                   <InvoicedItem
-                    key={key}
-                    id={key.toString()}
-                    bubbleUpTotalAmount={(amount: number) =>
-                      refreshTotalAmountUsingChildKey(amount, key)
-                    }
-                    deleteThisChild={() => removeItemChildRow(key)}
+                    key={item.key}
+                    firstChild={index === 0 ? true : false}
+                    firstItemRef={index === 0 ? firstItemRef : undefined}
+                    itemProps={item}
+                    id={item.key}
+                    bubbleUpItem={(item) => handleBubbledItemChange(item)}
+                    deleteThisChild={() => removeItem(item.key)}
                   />
                 );
               })
@@ -201,7 +218,7 @@ export default function RecipientChild({
               className="recipient-default-value"
             >
               <Form.Control
-                value={`$${totalInvoiceAmount.toFixed(2)}`}
+                value={`$${recipientChildDetails.invoiceTotal.toFixed(2)}`}
                 plaintext
                 readOnly
                 id="invoice-total"
@@ -211,17 +228,24 @@ export default function RecipientChild({
         </div>
         <Row>
           <Col>
-            <Button variant="outline-success" onClick={handleAddRow}>
+            <Button variant="outline-success" onClick={handleAddItem}>
               + Add another item
             </Button>
           </Col>
-          <Col>
-            {firstChild ? null : (
-              <Button variant="danger" onClick={deleteThisChild}>
+          {firstChild ? null : (
+            <Col>
+              <Button
+                variant="danger"
+                onClick={
+                  deleteThisChild
+                    ? () => deleteThisChild(recipientChildDetails.invoiceNumber)
+                    : undefined
+                }
+              >
                 remove this recipient
               </Button>
-            )}
-          </Col>
+            </Col>
+          )}
         </Row>
       </Form.Group>
     </div>

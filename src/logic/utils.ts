@@ -1,11 +1,17 @@
 import { Dispatch, SetStateAction } from "react";
-import { InvoiceItemFields } from "../../interfaces/invoices.ts";
+import {
+  InvoiceItemFields,
+  InvoiceRecipientItemState,
+} from "../../interfaces/invoices.ts";
 import { EmailEndpointParameter } from "../../interfaces/emails.ts";
 import axios from "axios";
 
 export type numbsThatArePotentiallyNull = number | null;
 
-export type allInterfacesWithKeys = AmountAndKey | InvoiceItemsAndKey;
+export type allInterfacesWithKeys =
+  | AmountAndKey
+  | InvoiceItemsAndKey
+  | InvoiceRecipientItemState;
 
 export interface AmountAndKey {
   amount: number;
@@ -30,7 +36,7 @@ export function handleIfQuantityOrRateIsNull(
 
 export function keyIsInTotalAmounts(
   key: number,
-  totalAmounts: AmountAndKey[] | InvoiceItemsAndKey[]
+  totalAmounts: allInterfacesWithKeys[]
 ) {
   let keyIsPresent = false;
   totalAmounts.forEach((e) => {
@@ -96,8 +102,17 @@ export function deleteKeyAndCallbackSetState(
   setStateCallback(newChildren);
 }
 
-export function incrementId(priorIds: number[]) {
-  return Math.max(...priorIds) + 1;
+export function incrementKey(priorKeys: string[]) {
+  // ? now, it seems unsafe to just turn all these strings to numbers
+  // ? willy nilly, however, the input for all said strings,
+  // ? is vetted by an input that checks that they are, in fact, numbers
+
+  if (priorKeys.length === 0) return "1";
+
+  const StringsConvertedToNums: number[] = priorKeys.map((i) => {
+    return Number(i);
+  });
+  return (Math.max(...StringsConvertedToNums) + 1).toString();
 }
 
 export function convertToInvoiceNumberAsString(
@@ -163,27 +178,6 @@ export function getDateAfterOneWeek() {
   nextWeek.setDate(today.getDate() + 7);
   const formattedDate = nextWeek.toISOString().split("T")[0];
   return formattedDate;
-}
-
-export function wipeForm(
-  refElems: React.RefObject<HTMLDivElement>[],
-  callbacks: (() => void)[]
-) {
-  // ? clears all form data
-  refElems.forEach((e) => {
-    if (e.current) {
-      [...e.current.getElementsByTagName("input")].forEach((e) => {
-        e.value = "";
-      });
-      [...e.current.getElementsByTagName("textarea")].forEach((e) => {
-        e.value = "";
-      });
-    }
-  });
-
-  callbacks.forEach((fn) => {
-    fn();
-  });
 }
 
 const emailEndpoint = import.meta.env.VITE_EMAIL_ENDPOINT;
