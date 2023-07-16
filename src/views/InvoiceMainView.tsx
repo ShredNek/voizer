@@ -118,13 +118,13 @@ export default function InvoiceMainView() {
     e.preventDefault();
     buttonIsActive.current = false;
 
-    // if (e.currentTarget.checkValidity() === false) {
-    //   e.stopPropagation();
-    //   setValidated(true);
-    //   buttonIsActive.current = true;
-    //   return;
-    // }
-    // setValidated(false);
+    if (e.currentTarget.checkValidity() === false) {
+      e.stopPropagation();
+      setValidated(true);
+      buttonIsActive.current = true;
+      return;
+    }
+    setValidated(false);
 
     const json = createInvoiceJsonFromManualInputAndDetectSpam({
       invoiceSenderDetailsState,
@@ -138,7 +138,6 @@ export default function InvoiceMainView() {
     }
 
     // ? sets other aspects of the form to default
-    console.log("wiping");
     setInvoiceSenderDetailsState({
       name: "",
       email: "",
@@ -218,11 +217,6 @@ export default function InvoiceMainView() {
       },
     ]);
   }, []);
-
-  useEffect(() => {
-    console.log(invoiceSenderDetailsState);
-    console.log(invoiceRecipientState);
-  }, [invoiceSenderDetailsState, invoiceRecipientState]);
 
   return (
     <section>

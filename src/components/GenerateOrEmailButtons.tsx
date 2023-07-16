@@ -1,4 +1,4 @@
-import { Button, Row, Col, ButtonToolbar } from "react-bootstrap";
+import { Button, Row, Col } from "react-bootstrap";
 import { useState } from "react";
 
 interface GenerateOrEmailButtons {

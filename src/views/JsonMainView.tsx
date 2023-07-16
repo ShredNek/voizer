@@ -53,11 +53,8 @@ export default function JsonMainView() {
 
       JSON.parse(val);
     } catch {
-      // console.error("invalid json");
+      console.error("invalid json");
       setActive(false);
-    }
-    if (active) {
-      // console.log("all good");
     }
   }
 

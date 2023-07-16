@@ -107,7 +107,6 @@ export default function RecipientChild({
 
   useImperativeHandle(firstChildRef, () => ({
     clearChildItems() {
-      console.log("clearning");
       setRecipientChildDetails(() => ({
         name: "",
         email: "",
@@ -116,8 +115,6 @@ export default function RecipientChild({
         invoiceTotal: 0,
         invoiceNumber: recipientChildDetails.invoiceNumber,
       }));
-      console.log(recipientChildDetails);
-
       firstItemRef.current?.clearItemAmounts();
     },
   }));
