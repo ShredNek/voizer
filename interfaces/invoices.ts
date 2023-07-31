@@ -35,7 +35,7 @@ export interface InvoiceRecipientDetailsState extends PersonalDetails {
   invoiceNumber: string;
 }
 
-export interface Client {
+export interface Recipient {
   name: string;
   email: string;
   items: InvoiceItemFields[];
@@ -44,7 +44,7 @@ export interface Client {
 export interface UserInput {
   baseNumber: string;
   senderDetails: PersonalDetails;
-  students: Client[];
+  recipients: Recipient[];
   notes: string;
 }
 

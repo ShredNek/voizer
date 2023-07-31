@@ -182,23 +182,26 @@ export function getDateAfterOneWeek() {
 
 const emailEndpoint = import.meta.env.VITE_EMAIL_ENDPOINT;
 
-export async function sendEmail(userArguments: EmailEndpointParameter) {
-  axios
-    .post(emailEndpoint, userArguments)
-    .then(() =>
-      console.log(
-        "Good! " +
-          userArguments.invoiceDetails.to.name +
-          " has been sent their invoice"
-      )
-    )
-    .catch(() =>
-      console.log(
-        "nah we fucked up: " +
-          userArguments.invoiceDetails.to.name +
-          " didn't get their invoice"
-      )
+export async function sendEmail(
+  userArguments: EmailEndpointParameter
+): Promise<boolean> {
+  try {
+    await axios.post(emailEndpoint, userArguments);
+    console.log(
+      "Good! " +
+        userArguments.invoiceDetails.to.name +
+        " has been sent their invoice"
     );
+    return true;
+  } catch (error) {
+    console.error(
+      "Uh oh... " +
+        userArguments.invoiceDetails.to.name +
+        " didn't get their invoice",
+      error
+    );
+    return false;
+  }
 }
 
 export function hasDuplicateStrings(strings: string[]): boolean {

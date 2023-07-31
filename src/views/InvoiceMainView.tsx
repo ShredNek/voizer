@@ -1,10 +1,9 @@
-import { Form, Container, Button } from "react-bootstrap";
+import { Form, Container, Button, Alert } from "react-bootstrap";
 import { useState, useRef, useEffect } from "react";
 
 import { prependZeroes, incrementKey } from "../logic/utils";
 import {
-  downloadInvoices,
-  emailInvoices,
+  handleAllInvoices,
   createInvoiceJsonFromManualInputAndDetectSpam,
   recalculateInvoiceNumbersOnRecipientChildren,
 } from "../logic/invoiceGenerationLogic";
@@ -13,10 +12,14 @@ import {
   invoiceReturnMethod,
   InvoiceRecipientDetailsState,
 } from "../../interfaces/invoices";
+import { RecipientStatuses } from "../../interfaces/emails";
+
 
 import RecipientChild from "../components/RecipientChild";
 import InvoiceSenderDetails from "../components/InvoiceSenderDetails";
 import GenerateOrEmailButtons from "../components/GenerateOrEmailButtons";
+import LoadingSpinner from "../components/LoadingSpinner";
+import AlertParent from "../components/AlertParent";
 
 export default function InvoiceMainView() {
   const defaultInvNumber = "0001";
@@ -42,9 +45,10 @@ export default function InvoiceMainView() {
   ] as InvoiceRecipientDetailsState[]);
 
   const [validated, setValidated] = useState(false);
+  const [uiIsAccessible, setUiIsAccessible] = useState(true);
   const invoiceProcessMethod = useRef<invoiceReturnMethod>("download");
   const formRef = useRef<HTMLFormElement>(null);
-  let buttonIsActive = useRef(true);
+  const [recipientStatuses, setRecipientStatuses] = useState({} as RecipientStatuses)
 
   function handleInvoiceSenderState(state: InvoiceSenderDetailsState) {
     const recalculatedInvNumRecipients =
@@ -114,14 +118,15 @@ export default function InvoiceMainView() {
     setInvoiceRecipientState(() => [...arrayWithoutDeletedItem]);
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    buttonIsActive.current = false;
+    setUiIsAccessible(false);
 
     if (e.currentTarget.checkValidity() === false) {
       e.stopPropagation();
       setValidated(true);
-      buttonIsActive.current = true;
+      setUiIsAccessible(true);
+
       return;
     }
     setValidated(false);
@@ -133,7 +138,7 @@ export default function InvoiceMainView() {
 
     if (!json) {
       setValidated(true);
-      buttonIsActive.current = true;
+      setUiIsAccessible(true);
       return;
     }
 
@@ -183,14 +188,15 @@ export default function InvoiceMainView() {
 
     switch (invoiceProcessMethod.current) {
       case "download":
-        downloadInvoices(json);
+        handleAllInvoices(json, "download");
         break;
       case "email":
-        emailInvoices(json);
+        setRecipientStatuses(await handleAllInvoices(json, "email"));
+        console.log(recipientStatuses);
         break;
     }
 
-    buttonIsActive.current = true;
+    setUiIsAccessible(true);
   }
 
   useEffect(() => {
@@ -219,29 +225,32 @@ export default function InvoiceMainView() {
   }, []);
 
   return (
-    <section>
-      <h2 className="my-4 text-center">Let's send some invoices!</h2>
-      <Container>
-        <Form
-          noValidate
-          onSubmit={handleSubmit}
-          validated={validated}
-          ref={formRef}
-        >
-          <h4>Invoice sender's details:</h4>
-          <div>
-            <InvoiceSenderDetails
-              onChange={handleInvoiceSenderState}
-              initialDetails={invoiceSenderDetailsState}
-            />
-          </div>
-          <div className="divider" />
-          <h4 className="my-4">
-            Please enter the details of each recipient below...
-          </h4>
-          <div id="all-recipients">
-            {invoiceRecipientState.length >= 1
-              ? invoiceRecipientState.map((recipient, index) => {
+    <div className="page-content-parent">
+      <AlertParent recipientStatuses={recipientStatuses} />
+      <LoadingSpinner isActive={!uiIsAccessible} />
+      <section className={uiIsAccessible ? "" : "blurred"}>
+        <h2 className="my-4 text-center">Let's send some invoices!</h2>
+        <Container>
+          <Form
+            noValidate
+            onSubmit={handleSubmit}
+            validated={validated}
+            ref={formRef}
+          >
+            <h4>Invoice sender's details:</h4>
+            <div>
+              <InvoiceSenderDetails
+                onChange={handleInvoiceSenderState}
+                initialDetails={invoiceSenderDetailsState}
+              />
+            </div>
+            <div className="divider" />
+            <h4 className="my-4">
+              Please enter the details of each recipient below...
+            </h4>
+            <div id="all-recipients">
+              {invoiceRecipientState.length >= 1
+                ? invoiceRecipientState.map((recipient, index) => {
                   return (
                     <RecipientChild
                       key={recipient.invoiceNumber}
@@ -252,19 +261,22 @@ export default function InvoiceMainView() {
                     />
                   );
                 })
-              : null}
-          </div>
-          <Button variant="success" onClick={handleAddRecipientChild}>
-            + Add recipient
-          </Button>
-          <GenerateOrEmailButtons
-            active={buttonIsActive.current}
-            formRef={formRef}
-            DownloadInvoices={() => (invoiceProcessMethod.current = "download")}
-            EmailInvoices={() => (invoiceProcessMethod.current = "email")}
-          />
-        </Form>
-      </Container>
-    </section>
+                : null}
+            </div>
+            <Button variant="success" onClick={handleAddRecipientChild}>
+              + Add recipient
+            </Button>
+            <GenerateOrEmailButtons
+              active={uiIsAccessible}
+              formRef={formRef}
+              DownloadInvoices={() =>
+                (invoiceProcessMethod.current = "download")
+              }
+              EmailInvoices={() => (invoiceProcessMethod.current = "email")}
+            />
+          </Form>
+        </Container>
+      </section>
+    </div>
   );
 }

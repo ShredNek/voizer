@@ -8,14 +8,17 @@ import {
   hasDuplicateStrings,
   prependZeroes,
 } from "./utils.ts";
-import { EmailEndpointParameter } from "../../interfaces/emails.ts";
+import {
+  EmailEndpointParameter,
+  RecipientStatuses,
+} from "../../interfaces/emails.ts";
 import {
   InvoiceFields,
   InvoiceItemFields,
   PersonalDetails,
   invoiceReturnMethod,
   UserInput,
-  Client,
+  Recipient,
   InvoiceSenderDetailsState,
   InvoiceRecipientDetailsState,
   InvoiceRecipientItemState,
@@ -30,15 +33,15 @@ interface StatesFromManualInput {
 
 // ? EXPORTED FUNCTIONS ?
 
-export const jsonPlaceholder = {
+export const jsonPlaceholder: UserInput = {
   baseNumber: "1998",
   senderDetails: {
     name: "Daniel",
     email: "daniel@test.com",
-    number: "123456789",
+    contactNumber: "123456789",
     businessNumber: "ABN: 123456789",
   },
-  students: [
+  recipients: [
     {
       name: "Jane Doe",
       email: "janedoe@test.com",
@@ -129,7 +132,7 @@ export function generateInvoiceJsonFromJsonInputAndDetectSpam(
 ): InvoiceFields[] | void {
   let finalJson: InvoiceFields[] = [];
 
-  userInput.students.forEach((student, iteration) => {
+  userInput.recipients.forEach((recipient, iteration) => {
     let jsonItem = {
       invoiceNumber: convertToInvoiceNumberAsString(
         userInput.baseNumber,
@@ -139,15 +142,15 @@ export function generateInvoiceJsonFromJsonInputAndDetectSpam(
       ),
       notes: userInput.notes,
       from: userInput.senderDetails,
-      to: { name: student.name, email: student.email },
-      items: student.items,
+      to: { name: recipient.name, email: recipient.email },
+      items: recipient.items,
     } as InvoiceFields;
 
     finalJson.push(jsonItem);
   });
 
   return handleSpamWarning(
-    !checkForDuplicateEmails(userInput.students),
+    !checkForDuplicateEmails(userInput.recipients),
     finalJson
   );
 }
@@ -440,19 +443,16 @@ export function generateInvoicePdf(
   }
 }
 
-export function downloadInvoices(allInvoices: InvoiceFields[] | undefined) {
-  allInvoices ? handleAllInvoices(allInvoices, "download") : null;
-}
-
-export function emailInvoices(allInvoices: InvoiceFields[] | undefined) {
-  allInvoices ? handleAllInvoices(allInvoices, "email") : null;
-}
-
-export function handleAllInvoices(
+export async function handleAllInvoices(
   allInvoices: InvoiceFields[],
   returnMethod: invoiceReturnMethod
 ) {
-  allInvoices.forEach((invoice) => {
+  let recipientStatuses: RecipientStatuses = {
+    successfullyReceivedEmail: [],
+    emailReceiptError: [],
+  };
+
+  const emailsToSend = allInvoices.map(async (invoice) => {
     if (returnMethod === "download") {
       generateInvoicePdf(invoice, returnMethod);
     } else if (returnMethod === "email") {
@@ -464,9 +464,28 @@ export function handleAllInvoices(
         encodedInvoice,
         invoiceDetails: invoice,
       } as EmailEndpointParameter;
-      sendEmail(emailArgs);
+      const emailWasSentOkay = await sendEmail(emailArgs);
+      console.log(emailWasSentOkay);
+      if (emailWasSentOkay) {
+        recipientStatuses.successfullyReceivedEmail.push({
+          name: invoice.to.name,
+          email: invoice.to.email,
+        });
+      } else if (!emailWasSentOkay) {
+        recipientStatuses.emailReceiptError.push({
+          name: invoice.to.name,
+          email: invoice.to.email,
+        });
+      }
     }
   });
+
+  await Promise.all(emailsToSend).catch((err) =>
+    console.error("something went wrong while sending emails" + err)
+  );
+
+  console.log("returning");
+  return recipientStatuses;
 }
 
 // ? INTERNAL FUNCTIONS ?
@@ -513,7 +532,7 @@ function handleSpamWarning(any: boolean, returnVal: any) {
     : (console.error(antiSpamWarningMsg), window.alert(antiSpamWarningMsg));
 }
 
-function checkForDuplicateEmails(students: Client[]): boolean {
+function checkForDuplicateEmails(students: Recipient[]): boolean {
   // ? to check that not one email is being spammed;
   let allEmails: string[] = [];
   students.forEach((student) => allEmails.push(student.email));

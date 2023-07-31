@@ -1,4 +1,0 @@
-- control all state on main view
-  - recipient data in one state object 
-  - recipient children details in state
-  - bubble up state data instead of using dom manipulation

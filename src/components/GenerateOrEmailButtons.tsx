@@ -52,7 +52,7 @@ export default function GenerateOrEmailButtons({
                 onClick={handleEmailButtonClick}
                 disabled={disabled || !active}
               >
-                {disabled ? "Sending" : "Send All Invoices"}
+                {disabled || !active ? "Sending" : "Send All Invoices"}
               </Button>
             </div>
           </Col>
